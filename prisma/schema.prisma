@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  email          String   @unique
+  mobileNumber   String?
+  password       String?
+  fullName       String?
+  country        String?
+  userType       String?
+  companyName    String?
+  
+  // OTP Verification
+  isEmailVerified Boolean @default(false)
+  emailOtp        String?
+  emailOtpExpiry  DateTime?
+
+  // Phase 3: Company Profile (Business)
+  iecNumber      String?
+  gstNumber      String?
+  panNumber      String?
+  internationalBusinessIds String?
+  websiteUrl     String?
+  linkedinUrl    String?
+  yearEstablished String?
+  companySize    String?
+  turnover       String?
+  industrySector String?
+  businessAddress String?
+  legalStructure  String?
+
+  // Phase 3: Business Profile (Business)
+  businessRole   String?
+  products       String[]
+  targetMarkets  String[]
+  keyCertifications String[]
+  experience     String?
+  objective      String?
+
+  // Phase 3: Profile (Individual)
+  professionalTitle String?
+  nationality       String?
+  linkedinProfileUrl String?
+  yearsOfExperience String?
+  aadharNumber      String?
+  internationalKycIds String?
+  expertiseAreas    String[]
+  sectorsOfInterest String[]
+  languagesSpoken   String[]
+
+  profilePicture   String?
+  // Documents
+  iecDocument      String?
+  gstDocument      String?
+  panDocument      String?
+  companyProfileDocument String?
+  productCatalogue String[]
+  documents        String[]
+
+  role             String   @default("user")
+  createdAt        DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
