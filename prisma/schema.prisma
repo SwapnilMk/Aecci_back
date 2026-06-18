@@ -22,6 +22,7 @@ model User {
   emailOtp        String?
   emailOtpExpiry  DateTime?
 
+
   // Phase 3: Company Profile (Business)
   iecNumber      String?
   gstNumber      String?
@@ -68,3 +69,5 @@ model User {
   createdAt        DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+

@@ -8,6 +8,9 @@ import { config } from './config/config';
 
 dotenv.config();
 
+// Initialize BullMQ Workers
+import './queues/email.queue';
+
 const app = express();
 const PORT = config.PORT;
 

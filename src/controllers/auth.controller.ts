@@ -3,6 +3,24 @@ import { authService } from '../services/auth.service';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class AuthController {
+  async sendOtp(req: Request, res: Response) {
+    try {
+      const result = await authService.sendOtp(req.body);
+      
+      res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error: any) {
+      if (['User already exists', 'Email is required'].includes(error.message)) {
+        res.status(400).json({ success: false, message: error.message });
+      } else {
+        console.error('Send OTP error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+      }
+    }
+  }
+
   async signup(req: Request, res: Response) {
     try {
       const result = await authService.signup(req.body);
@@ -10,7 +28,11 @@ export class AuthController {
       res.status(201).json({
         success: true,
         message: result.message,
-        data: result.user,
+        data: {
+          user: result.user,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        },
       });
     } catch (error: any) {
       if (['Email and password are required', 'User already exists'].includes(error.message)) {
@@ -32,11 +54,10 @@ export class AuthController {
       
       res.status(200).json({
         success: true,
-        message: 'Email verified successfully',
-        data: result,
+        message: result.message,
       });
     } catch (error: any) {
-      if (['User not found', 'Email is already verified', 'Invalid OTP', 'OTP has expired'].includes(error.message)) {
+      if (['No OTP request found for this email', 'Email is already verified', 'Invalid OTP', 'OTP has expired'].includes(error.message)) {
         res.status(400).json({ success: false, message: error.message });
       } else {
         console.error('Verify OTP error:', error);

@@ -3,10 +3,46 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../config/db.config';
 import { config } from '../config/config';
 import { emailService } from './email.service';
+import { redis } from '../config/redis.config';
+import { emailQueue } from '../queues/email.queue';
 
 export class AuthService {
-  async signup(userData: any): Promise<{ user: any; message: string }> {
-    const { email, mobileNumber, password, fullName, country, userType, companyName } = userData;
+  async sendOtp(userData: any): Promise<{ message: string }> {
+    const { email, fullName } = userData;
+
+    if (!email) {
+      throw new Error('Email is required');
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw new Error('User already exists');
+    }
+
+    const cooldownKey = `otp_cooldown:${email}`;
+    const isCooldown = await redis.get(cooldownKey);
+    if (isCooldown) {
+      throw new Error('Please wait 2 minutes before requesting another OTP');
+    }
+
+    const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store OTP in Redis (15 mins TTL)
+    await redis.setex(`otp:${email}`, 900, emailOtp);
+    
+    // Set 2 minute cooldown
+    await redis.setex(cooldownKey, 120, '1');
+
+    await emailQueue.add('send-otp', {
+      type: 'sendOTP',
+      payload: { email, fullName: fullName || 'User', otp: emailOtp }
+    });
+
+    return { message: 'OTP sent to email' };
+  }
+
+  async signup(userData: any): Promise<{ user: any; accessToken: string; refreshToken: string; message: string }> {
+    const { email, password, ...restData } = userData;
 
     if (!email || !password) {
       throw new Error('Email and password are required');
@@ -14,77 +50,71 @@ export class AuthService {
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      if (existingUser.isEmailVerified) {
-        throw new Error('User already exists');
-      }
-      // If user exists but is not verified, we can update their info and resend OTP
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      const emailOtpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
-      
-      const updatedUser = await prisma.user.update({
-        where: { email },
-        data: {
-          mobileNumber, password: hashedPassword, fullName, country, userType, companyName,
-          emailOtp, emailOtpExpiry
-        }
-      });
-      
-      await emailService.sendOTP(email, fullName, emailOtp);
-      const { password: _, ...userToReturn } = updatedUser;
-      return { user: userToReturn, message: 'OTP sent to email' };
+      throw new Error('User already exists');
+    }
+
+    const verifiedKey = `otp_verified:${email}`;
+    const isVerified = await redis.get(verifiedKey);
+    
+    if (!isVerified) {
+      throw new Error('Email not verified. Please verify OTP first.');
     }
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const payloadData = { ...restData };
+    if (typeof payloadData.internationalBusinessIds === 'object') {
+      payloadData.internationalBusinessIds = JSON.stringify(payloadData.internationalBusinessIds);
+    }
+    if (typeof payloadData.internationalKycIds === 'object') {
+      payloadData.internationalKycIds = JSON.stringify(payloadData.internationalKycIds);
+    }
+
+    const arrayFields = [
+      'products', 'targetMarkets', 'keyCertifications', 
+      'expertiseAreas', 'sectorsOfInterest', 'languagesSpoken'
+    ];
     
-    // Generate 6 digit OTP
-    const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const emailOtpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    for (const field of arrayFields) {
+      if (typeof payloadData[field] === 'string') {
+        payloadData[field] = payloadData[field].split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+    }
 
     const newUser = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        mobileNumber,
-        fullName,
-        country,
-        userType,
-        companyName,
-        emailOtp,
-        emailOtpExpiry,
+        isEmailVerified: true,
+        ...payloadData,
       },
     });
 
-    // Send Email with OTP
-    await emailService.sendOTP(email, fullName, emailOtp);
-
-    const { password: _, ...userToReturn } = newUser;
-
-    return { user: userToReturn, message: 'OTP sent to email' };
-  }
-
-  async verifyOtp(email: string, otp: string): Promise<{ user: any; accessToken: string; refreshToken: string }> {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) throw new Error('User not found');
-    if (user.isEmailVerified) throw new Error('Email is already verified');
-    if (user.emailOtp !== otp) throw new Error('Invalid OTP');
-    if (user.emailOtpExpiry && user.emailOtpExpiry < new Date()) throw new Error('OTP has expired');
-
-    const updatedUser = await prisma.user.update({
-      where: { email },
-      data: {
-        isEmailVerified: true,
-        emailOtp: null,
-        emailOtpExpiry: null
-      }
+    await emailQueue.add('registration-success', {
+      type: 'sendRegistrationSubmitted',
+      payload: { email: newUser.email, fullName: newUser.fullName || 'User', userId: newUser.id }
     });
 
-    const { accessToken, refreshToken } = this.generateTokens(updatedUser);
-    const { password: _, ...userToReturn } = updatedUser;
+    await redis.del(verifiedKey);
+
+    const { accessToken, refreshToken } = this.generateTokens(newUser);
+    const { password: _, ...userToReturn } = newUser;
+
+    return { user: userToReturn, accessToken, refreshToken, message: 'Registration successful' };
+  }
+
+  async verifyOtp(email: string, otp: string): Promise<{ message: string }> {
+    const storedOtp = await redis.get(`otp:${email}`);
     
-    return { user: userToReturn, accessToken, refreshToken };
+    if (!storedOtp) throw new Error('No OTP request found for this email or OTP has expired');
+    if (storedOtp !== otp) throw new Error('Invalid OTP');
+
+    // Mark as verified for 1 hour
+    await redis.setex(`otp_verified:${email}`, 3600, '1');
+    await redis.del(`otp:${email}`);
+
+    return { message: 'Email verified successfully' };
   }
 
   async updateProfile(userId: string, profileData: any): Promise<any> {

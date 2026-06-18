@@ -13,4 +13,4 @@ const ses = new aws.SES({
 
 export const transporter = nodemailer.createTransport({
   SES: { ses, aws },
-});
+} as any);
