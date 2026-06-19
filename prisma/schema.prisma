@@ -65,6 +65,7 @@ model User {
   productCatalogue String[]
   documents        String[]
 
+  kycStatus        String   @default("pending") // pending, approved, rejected
   role             String   @default("user")
   createdAt        DateTime @default(now())
   updatedAt      DateTime @updatedAt

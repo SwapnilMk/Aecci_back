@@ -26,12 +26,17 @@ export class AuthService {
     }
 
     const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Store OTP in Redis (15 mins TTL)
     await redis.setex(`otp:${email}`, 900, emailOtp);
-    
+
     // Set 2 minute cooldown
     await redis.setex(cooldownKey, 120, '1');
+
+    // Log the OTP for easy local testing
+    console.log(`\n========================================`);
+    console.log(`🔐 REGISTRATION OTP FOR ${email}: ${emailOtp}`);
+    console.log(`========================================\n`);
 
     await emailQueue.add('send-otp', {
       type: 'sendOTP',
@@ -55,7 +60,7 @@ export class AuthService {
 
     const verifiedKey = `otp_verified:${email}`;
     const isVerified = await redis.get(verifiedKey);
-    
+
     if (!isVerified) {
       throw new Error('Email not verified. Please verify OTP first.');
     }
@@ -72,10 +77,10 @@ export class AuthService {
     }
 
     const arrayFields = [
-      'products', 'targetMarkets', 'keyCertifications', 
+      'products', 'targetMarkets', 'keyCertifications',
       'expertiseAreas', 'sectorsOfInterest', 'languagesSpoken'
     ];
-    
+
     for (const field of arrayFields) {
       if (typeof payloadData[field] === 'string') {
         payloadData[field] = payloadData[field].split(',').map((s: string) => s.trim()).filter(Boolean);
@@ -106,7 +111,7 @@ export class AuthService {
 
   async verifyOtp(email: string, otp: string): Promise<{ message: string }> {
     const storedOtp = await redis.get(`otp:${email}`);
-    
+
     if (!storedOtp) throw new Error('No OTP request found for this email or OTP has expired');
     if (storedOtp !== otp) throw new Error('Invalid OTP');
 
@@ -122,7 +127,7 @@ export class AuthService {
       where: { id: userId },
       data: profileData
     });
-    
+
     // Send "Registration Successfully Submitted" email
     await emailService.sendRegistrationSubmitted(user.email, user.fullName || 'User', user.id);
 
@@ -134,16 +139,16 @@ export class AuthService {
     try {
       const secret = config.JWT_REFRESH_SECRET;
       const decoded: any = jwt.verify(refreshToken, secret);
-      
+
       const user = await prisma.user.findUnique({ where: { id: decoded.id } });
       if (!user) throw new Error('User not found');
-      
+
       const accessToken = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         config.JWT_ACCESS_SECRET,
         { expiresIn: '15m' }
       );
-      
+
       return { accessToken };
     } catch (error) {
       throw new Error('Invalid or expired refresh token');
@@ -171,7 +176,7 @@ export class AuthService {
       if (!otp) {
         const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
         await redis.setex(`admin_otp:${email}`, 300, emailOtp); // 5 mins
-        
+
         // Log the OTP for easy local testing
         console.log(`\n========================================`);
         console.log(`🔐 ADMIN LOGIN OTP FOR ${email}: ${emailOtp}`);
@@ -230,7 +235,7 @@ export class AuthService {
     }
 
     await redis.del(`reset_otp:${email}`);
-    
+
     // Generate a temporary reset token
     const resetToken = jwt.sign({ email }, config.JWT_ACCESS_SECRET, { expiresIn: '15m' });
     await redis.setex(`reset_token:${email}`, 900, resetToken); // 15 mins
@@ -247,7 +252,7 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    
+
     await prisma.user.update({
       where: { email },
       data: { password: hashedPassword }
@@ -264,13 +269,13 @@ export class AuthService {
       config.JWT_ACCESS_SECRET,
       { expiresIn: '15m' }
     );
-    
+
     const refreshToken = jwt.sign(
       { id: user.id },
       config.JWT_REFRESH_SECRET,
       { expiresIn: '7d' }
     );
-    
+
     return { accessToken, refreshToken };
   }
 }

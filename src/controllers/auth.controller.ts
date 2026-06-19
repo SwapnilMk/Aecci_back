@@ -6,7 +6,7 @@ export class AuthController {
   async sendOtp(req: Request, res: Response) {
     try {
       const result = await authService.sendOtp(req.body);
-      
+
       res.status(200).json({
         success: true,
         message: result.message,
@@ -24,7 +24,7 @@ export class AuthController {
   async signup(req: Request, res: Response) {
     try {
       const result = await authService.signup(req.body);
-      
+
       res.status(201).json({
         success: true,
         message: result.message,
@@ -47,7 +47,7 @@ export class AuthController {
   async login(req: Request, res: Response) {
     try {
       const result = await authService.login(req.body);
-      
+
       if (result.requiresOtp) {
         res.status(200).json({
           success: true,
@@ -83,7 +83,7 @@ export class AuthController {
         return res.status(400).json({ success: false, message: 'Email and OTP are required' });
       }
       const result = await authService.verifyOtp(email, otp);
-      
+
       res.status(200).json({
         success: true,
         message: result.message,
@@ -104,9 +104,9 @@ export class AuthController {
       if (!userId) {
         return res.status(401).json({ success: false, message: 'Unauthorized' });
       }
-      
+
       const result = await authService.updateProfile(userId, req.body);
-      
+
       res.status(200).json({
         success: true,
         message: 'Profile updated successfully',
