@@ -29,7 +29,10 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
     "multer-s3": "^3.0.1",
-    "nodemailer": "^9.0.1"
+    "nodemailer": "^9.0.1",
+    "puppeteer": "^25.1.0",
+    "razorpay": "^2.9.6",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -40,6 +43,8 @@
     "@types/multer-s3": "^3.0.3",
     "@types/node": "^25.9.3",
     "@types/nodemailer": "^8.0.1",
+    "@types/puppeteer": "^5.4.7",
+    "@types/uuid": "^10.0.0",
     "nodemon": "^3.1.14",
     "prisma": "5.10.0",
     "ts-node": "^10.9.2",

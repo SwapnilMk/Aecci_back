@@ -1,8 +1,8 @@
 import { prisma } from '../config/db.config';
 
 export class UserService {
-  static async getUsers(filters: { role?: string; userType?: string; kycStatus?: string }) {
-    const { role, userType, kycStatus } = filters;
+  static async getUsers(filters: { role?: string; userType?: string; kycStatus?: string; partnerId?: string }) {
+    const { role, userType, kycStatus, partnerId } = filters;
     const where: any = {};
     
     if (role) {
@@ -15,6 +15,10 @@ export class UserService {
 
     if (kycStatus) {
       where.kycStatus = kycStatus;
+    }
+
+    if (partnerId) {
+      where.partnerId = partnerId;
     }
 
     const users = await prisma.user.findMany({
@@ -72,6 +76,39 @@ export class UserService {
     const user = await prisma.user.update({
       where: { id: userId },
       data: { kycStatus },
+    });
+    return user;
+  }
+
+  static async assignPartner(userId: string, partnerId: string) {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        partnerId,
+        kycStatus: 'assigned_pending_pricing',
+      },
+    });
+    return user;
+  }
+
+  static async setPricing(userId: string, dealRoomPrice: number) {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        dealRoomPrice,
+        kycStatus: 'priced_pending_payment',
+      },
+    });
+    return user;
+  }
+
+  static async processPayment(userId: string) {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        paymentStatus: 'paid',
+        kycStatus: 'active',
+      },
     });
     return user;
   }

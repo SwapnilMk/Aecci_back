@@ -7,7 +7,7 @@ import path from 'path';
 export const upload = multer({
   storage: multerS3({
     s3: s3Client,
-    bucket: config.AWS_S3_BUCKET_NAME,
+    bucket: config.AWS_BUCKET_NAME,
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
       cb(null, 'aecciglobal/' + Date.now().toString() + '-' + file.originalname);
