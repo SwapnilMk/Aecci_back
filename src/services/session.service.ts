@@ -56,4 +56,51 @@ export class SessionService {
     });
     return session;
   }
+
+  static async bookSeat(userId: string, sessionId: string) {
+    // We use a transaction to ensure atomic decrement of seatsAvailable
+    return await prisma.$transaction(async (tx) => {
+      const session = await tx.session.findUnique({
+        where: { id: sessionId },
+      });
+
+      if (!session) {
+        throw new Error("Session not found");
+      }
+
+      if (session.seatsAvailable <= 0) {
+        throw new Error("Session is fully booked");
+      }
+
+      // Check if user already registered
+      const existingReg = await tx.sessionRegistration.findUnique({
+        where: {
+          userId_sessionId: { userId, sessionId }
+        }
+      });
+
+      if (existingReg) {
+        throw new Error("User is already registered for this session");
+      }
+
+      const registration = await tx.sessionRegistration.create({
+        data: {
+          userId,
+          sessionId,
+          paymentStatus: session.price > 0 ? "pending" : "paid",
+        }
+      });
+
+      await tx.session.update({
+        where: { id: sessionId },
+        data: {
+          seatsAvailable: {
+            decrement: 1
+          }
+        }
+      });
+
+      return registration;
+    });
+  }
 }

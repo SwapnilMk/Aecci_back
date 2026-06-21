@@ -1,5 +1,5 @@
 export const emailTemplates = {
-  // 1. OTP Email (Customized slightly for OTP logic)
+  // --- CORE FUNCTIONAL TEMPLATES (Not in Master Flow but required for auth) ---
   otpEmail: (name: string, otp: string) => ({
     subject: "Your OTP for AECCI Global Deal Room Registration",
     text: `Dear ${name},
@@ -18,26 +18,36 @@ Regards,
 AECCI Global Deal Room Team`,
   }),
 
-  // 2. Registration Successfully Submitted
-  registrationSubmitted: (name: string, referenceId: string) => ({
-    subject: "Registration Successfully Submitted",
+  kycApproved: (name: string) => ({
+    subject: "KYC Verification Successful – AECCI Global Deal Room",
     text: `Dear ${name},
 
-Thank you for submitting your registration.
+We are pleased to inform you that your KYC verification is complete and your application has been approved.
 
-Your application has been received and is currently under screening review.
-
-Reference Number:
-${referenceId}
-
-Our team will notify you regarding the next steps.
+Our team will now proceed with evaluating your requirements and assigning the appropriate partner and deal room.
 
 Regards,
-AECCI Screening Team`,
+AECCI Screening Desk`,
   }),
 
-  // Other templates as requested by the user for later use
-  interestThankYou: (name: string) => ({
+  kycRejected: (name: string, reason: string) => ({
+    subject: "Update on Your Registration – AECCI Global Deal Room",
+    text: `Dear ${name},
+
+Thank you for your interest in the AECCI Global Deal Room. After reviewing your submitted documents, we are unable to approve your application at this time.
+
+Reason: ${reason}
+
+If you have any questions or wish to submit updated documentation, please contact our support team.
+
+Regards,
+AECCI Screening Desk`,
+  }),
+
+  // --- MASTER EMAIL FLOW ---
+  
+  // EMAIL 1
+  newEnquiryReceived: (name: string) => ({
     subject: "Thank You for Your Interest in AECCI Global Deal Room",
     text: `Dear ${name},
 
@@ -53,7 +63,8 @@ Regards,
 AECCI Global Deal Room Team`,
   }),
 
-  completeRegistration: (name: string, registrationLink: string) => ({
+  // EMAIL 2
+  registrationInvitation: (name: string, registrationLink: string) => ({
     subject: "Complete Your Registration – AECCI Global Deal Room",
     text: `Dear ${name},
 
@@ -73,7 +84,26 @@ Regards,
 AECCI Registration Desk`,
   }),
 
-  applicationUnderReview: (name: string) => ({
+  // EMAIL 3
+  registrationSuccessful: (name: string, referenceId: string) => ({
+    subject: "Registration Successfully Submitted",
+    text: `Dear ${name},
+
+Thank you for submitting your registration.
+
+Your application has been received and is currently under screening review.
+
+Reference Number:
+${referenceId}
+
+Our team will notify you regarding the next steps.
+
+Regards,
+AECCI Screening Team`,
+  }),
+
+  // EMAIL 4
+  screeningUnderReview: (name: string) => ({
     subject: "Application Under Review",
     text: `Dear ${name},
 
@@ -87,7 +117,8 @@ Regards,
 AECCI Screening Desk`,
   }),
 
-  applicationApproved: (name: string, countryName: string, packagePlan: string, paymentLink: string) => ({
+  // EMAIL 5
+  applicationApproved: (name: string, countryName: string, paymentLink: string) => ({
     subject: "Congratulations – Application Approved",
     text: `Dear ${name},
 
@@ -98,9 +129,6 @@ You may now proceed with slot confirmation and payment.
 Session:
 ${countryName}
 
-Access Plan:
-${packagePlan}
-
 Complete Payment:
 ${paymentLink}
 
@@ -108,7 +136,8 @@ Regards,
 AECCI Deal Room Operations`,
   }),
 
-  reminderConfirmSeat: (name: string) => ({
+  // EMAIL 6
+  paymentReminder: (name: string) => ({
     subject: "Reminder – Confirm Your Deal Room Seat",
     text: `Dear ${name},
 
@@ -122,7 +151,8 @@ Regards,
 AECCI Accounts Team`,
   }),
 
-  paymentReceived: (name: string, invoice: string, paymentId: string) => ({
+  // EMAIL 7
+  paymentSuccess: (name: string, invoice: string, paymentId: string) => ({
     subject: "Payment Successfully Received",
     text: `Dear ${name},
 
@@ -142,7 +172,8 @@ Regards,
 AECCI Accounts Department`,
   }),
 
-  sessionConfirmed: (name: string, country: string, date: string, time: string) => ({
+  // EMAIL 8
+  sessionConfirmation: (name: string, country: string, date: string, time: string) => ({
     subject: "Your Deal Room Session Has Been Confirmed",
     text: `Dear ${name},
 
@@ -163,7 +194,8 @@ Regards,
 AECCI Operations Team`,
   }),
 
-  marketBriefAvailable: (name: string, downloadLink: string) => ({
+  // EMAIL 9
+  countryBriefAvailable: (name: string, downloadLink: string) => ({
     subject: "Country Market Brief Available",
     text: `Dear ${name},
 
@@ -178,7 +210,8 @@ Regards,
 AECCI Research Desk`,
   }),
 
-  collaborationPartnerInfo: (name: string) => ({
+  // EMAIL 10
+  partnerProfileShared: (name: string) => ({
     subject: "Collaboration Partner Information",
     text: `Dear ${name},
 
@@ -190,7 +223,8 @@ Regards,
 AECCI International Relations Desk`,
   }),
 
-  reminderSessionTomorrow: (name: string) => ({
+  // EMAIL 11
+  twentyFourHourReminder: (name: string) => ({
     subject: "Reminder – Your Session Starts Tomorrow",
     text: `Dear ${name},
 
@@ -206,7 +240,8 @@ Regards,
 AECCI Operations Team`,
   }),
 
-  meetingAccessDetails: (name: string, meetingLink: string) => ({
+  // EMAIL 12
+  meetingAccess: (name: string, meetingLink: string) => ({
     subject: "Meeting Access Details",
     text: `Dear ${name},
 
@@ -221,7 +256,8 @@ Regards,
 AECCI Session Desk`,
   }),
 
-  sessionStarting: (name: string, meetingLink: string) => ({
+  // EMAIL 13
+  sessionStartingNow: (name: string, meetingLink: string) => ({
     subject: "Your AECCI Session Is Starting",
     text: `Dear ${name},
 
@@ -234,7 +270,8 @@ Regards,
 AECCI Moderator Team`,
   }),
 
-  thankYouParticipating: (name: string) => ({
+  // EMAIL 14
+  thankYouForAttending: (name: string) => ({
     subject: "Thank You for Participating",
     text: `Dear ${name},
 
@@ -246,7 +283,8 @@ Regards,
 AECCI Global Deal Room Team`,
   }),
 
-  opportunitySummaryReport: (name: string, reportLink: string) => ({
+  // EMAIL 15
+  opportunityReport: (name: string, reportLink: string) => ({
     subject: "Your Opportunity Summary Report",
     text: `Dear ${name},
 
@@ -261,7 +299,8 @@ Regards,
 AECCI Research & Advisory Team`,
   }),
 
-  nextStepsExpansion: (name: string) => ({
+  // EMAIL 16
+  followUpServices: (name: string) => ({
     subject: "Next Steps for Market Expansion",
     text: `Dear ${name},
 
@@ -278,7 +317,8 @@ Regards,
 AECCI Advisory Desk`,
   }),
 
-  shareFeedback: (name: string) => ({
+  // EMAIL 17
+  feedbackRequest: (name: string) => ({
     subject: "Share Your Feedback",
     text: `Dear ${name},
 
@@ -290,6 +330,7 @@ Regards,
 AECCI Quality Team`,
   }),
 
+  // EMAIL 18
   sessionRescheduled: (name: string) => ({
     subject: "Important Update Regarding Your Session",
     text: `Dear ${name},
@@ -304,6 +345,7 @@ Regards,
 AECCI Operations Team`,
   }),
 
+  // EMAIL 19
   partnerNoShow: (name: string) => ({
     subject: "Session Update",
     text: `Dear ${name},
@@ -318,7 +360,8 @@ Regards,
 AECCI Operations Team`,
   }),
 
-  ticketClosed: (name: string) => ({
+  // EMAIL 20
+  clientSupportClosure: (name: string) => ({
     subject: "AECCI Support Ticket Closed",
     text: `Dear ${name},
 

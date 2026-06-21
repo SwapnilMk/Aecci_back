@@ -64,19 +64,30 @@ export class PaymentController {
         return res.status(404).json({ success: false, message: 'User or Session not found during verification' });
       }
 
-      const registration = await prisma.sessionRegistration.upsert({
-        where: {
-          userId_sessionId: { userId, sessionId }
-        },
-        update: {
-          paymentStatus: 'paid',
-          paymentReference: razorpay_payment_id,
-        },
-        create: {
-          userId,
-          sessionId,
-          paymentStatus: 'paid',
-          paymentReference: razorpay_payment_id,
+      await prisma.$transaction(async (tx) => {
+        const existingReg = await tx.sessionRegistration.findUnique({
+          where: { userId_sessionId: { userId, sessionId } }
+        });
+
+        if (!existingReg) {
+          await tx.sessionRegistration.create({
+            data: {
+              userId,
+              sessionId,
+              paymentStatus: 'paid',
+              paymentReference: razorpay_payment_id,
+            }
+          });
+
+          await tx.session.update({
+            where: { id: sessionId },
+            data: { seatsAvailable: { decrement: 1 } }
+          });
+        } else {
+          await tx.sessionRegistration.update({
+            where: { userId_sessionId: { userId, sessionId } },
+            data: { paymentStatus: 'paid', paymentReference: razorpay_payment_id }
+          });
         }
       });
 

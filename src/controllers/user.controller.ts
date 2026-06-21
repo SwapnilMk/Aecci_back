@@ -47,13 +47,14 @@ export class UserController {
   static async updateKycStatus(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { kycStatus } = req.body;
+      const { kycStatus, reason, partnerId, assignedPartnerFee, assignedPartnerSlot } = req.body;
 
       const allowedStatuses = [
-        'pending', 
+        'pending_verification', 
         'approved_pending_assignment', 
         'assigned_pending_pricing', 
         'priced_pending_payment', 
+        'approved',
         'active', 
         'rejected'
       ];
@@ -61,7 +62,18 @@ export class UserController {
         return res.status(400).json({ success: false, message: 'Invalid kycStatus' });
       }
 
-      const updatedUser = await UserService.updateKycStatus(id as string, kycStatus);
+      if (kycStatus === 'rejected' && !reason) {
+        return res.status(400).json({ success: false, message: 'Reason is required for rejection' });
+      }
+
+      const updatedUser = await UserService.updateKycStatus(
+        id as string, 
+        kycStatus, 
+        reason,
+        partnerId,
+        assignedPartnerFee ? Number(assignedPartnerFee) : undefined,
+        assignedPartnerSlot ? new Date(assignedPartnerSlot) : undefined
+      );
 
       res.status(200).json({
         success: true,

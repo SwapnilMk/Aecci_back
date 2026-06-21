@@ -72,11 +72,36 @@ export class UserService {
     return user;
   }
 
-  static async updateKycStatus(userId: string, kycStatus: string) {
+  static async updateKycStatus(
+    userId: string, 
+    kycStatus: string, 
+    reason?: string,
+    partnerId?: string,
+    assignedPartnerFee?: number,
+    assignedPartnerSlot?: Date
+  ) {
+    const updateData: any = { kycStatus };
+    if (partnerId) updateData.partnerId = partnerId;
+    if (assignedPartnerFee !== undefined) updateData.assignedPartnerFee = assignedPartnerFee;
+    if (assignedPartnerSlot) updateData.assignedPartnerSlot = assignedPartnerSlot;
+
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { kycStatus },
+      data: updateData,
     });
+    
+    // Import here to avoid circular dependency if email service depends on config which depends on DB
+    const { emailService } = await import('./email.service');
+    
+    if (kycStatus === 'approved_pending_assignment' || kycStatus === 'approved') {
+      // Create payment link logic or stub here
+      const paymentLink = `https://aecci-deal-room.com/payment?uid=${user.id}`;
+      // In the new flow, package plan is omitted
+      await emailService.sendApplicationApproved(user.email, user.fullName || 'Valued Partner', user.country || 'Target Country', paymentLink);
+    } else if (kycStatus === 'rejected') {
+      await emailService.sendKycRejected(user.email, user.fullName || 'Applicant', reason || 'Does not meet criteria.');
+    }
+    
     return user;
   }
 

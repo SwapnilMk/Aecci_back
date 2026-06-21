@@ -9,5 +9,6 @@ const router = Router();
 router.post('/', authenticate, SessionController.createSession);
 router.get('/', authenticate, SessionController.getSessions);
 router.get('/:id', authenticate, SessionController.getSessionById);
+router.post('/:id/book', authenticate, SessionController.bookSession);
 
 export default router;

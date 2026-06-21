@@ -21,6 +21,7 @@ model User {
   isEmailVerified Boolean @default(false)
   emailOtp        String?
   emailOtpExpiry  DateTime?
+  applicationNumber String?
 
 
   // Phase 3: Company Profile (Business)
@@ -73,6 +74,8 @@ model User {
   partner          User?    @relation("PartnerAssignment", fields: [partnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   assignedClients  User[]   @relation("PartnerAssignment")
   paymentStatus    String   @default("pending") // pending, paid
+  assignedPartnerFee Float?
+  assignedPartnerSlot DateTime?
   
   // New Relations for Deal Room Flow
   sessionsHosted   Session[]             @relation("SessionHost")
@@ -84,6 +87,7 @@ model User {
   messagesSent     Message[]             @relation("MessageSender")
   messagesReceived Message[]             @relation("MessageReceiver")
   auditLogs        AuditLog[]
+  partnerProfile   PartnerProfile?
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -119,6 +123,7 @@ model SessionRegistration {
   sessionId        String   @db.ObjectId
   paymentStatus    String   @default("pending") // pending, paid
   paymentReference String?
+  transactionId    String?
   invoiceUrl       String?
   joinedAt         DateTime?
   
@@ -218,4 +223,37 @@ model AuditLog {
   user        User     @relation(fields: [userId], references: [id])
 
   createdAt   DateTime @default(now())
+}
+
+model PartnerProfile {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @unique @db.ObjectId
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Application Info
+  organization      String?
+  expertiseCountries String[]
+  expertiseSectors   String[]
+  motivation        String?
+  
+  // Verification Docs
+  governmentId      String?
+  professionalCert  String?
+  businessProof     String?
+  references        String?
+  
+  // Admin Assigned
+  tier              String   @default("Standard") // Standard, Premium, Specialist
+  status            String   @default("pending_review") // pending_review, approved, active, suspended
+  
+  // Setup Info
+  bio               String?
+  availability      Json?    // Array of available slots/days
+  
+  // Legal
+  signedAgreement   Boolean  @default(false)
+  agreementDate     DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

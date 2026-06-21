@@ -21,3 +21,39 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
     return res.status(401).json({ success: false, message: 'Unauthorized: Invalid token' });
   }
 };
+
+export const requireRole = (roles: string[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Insufficient permissions' });
+    }
+    next();
+  };
+};
+
+export const requireKycApproved = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+    
+    const { prisma } = await import('../config/db.config');
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.kycStatus === 'pending_verification') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Access Restricted: Your account is pending verification.',
+        code: 'KYC_PENDING'
+      });
+    }
+
+    next();
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Internal server error during authorization' });
+  }
+};

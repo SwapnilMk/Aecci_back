@@ -146,7 +146,7 @@ export class AuthService {
       const accessToken = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         config.JWT_ACCESS_SECRET,
-        { expiresIn: '15m' }
+        { expiresIn: '1d' }
       );
 
       return { accessToken };
@@ -267,13 +267,13 @@ export class AuthService {
     const accessToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       config.JWT_ACCESS_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '1d' }
     );
 
     const refreshToken = jwt.sign(
       { id: user.id },
       config.JWT_REFRESH_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '30d' }
     );
 
     return { accessToken, refreshToken };

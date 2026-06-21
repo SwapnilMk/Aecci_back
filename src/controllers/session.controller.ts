@@ -56,4 +56,22 @@ export class SessionController {
       res.status(500).json({ success: false, message: 'Failed to fetch session' });
     }
   }
+
+  static async bookSession(req: any, res: Response) {
+    try {
+      const { id } = req.params; // session id
+      const userId = req.user.id;
+
+      const registration = await SessionService.bookSeat(userId, id);
+
+      res.status(200).json({
+        success: true,
+        message: 'Seat booked successfully',
+        data: registration,
+      });
+    } catch (error: any) {
+      console.error('Error booking session:', error);
+      res.status(400).json({ success: false, message: error.message || 'Failed to book session' });
+    }
+  }
 }
