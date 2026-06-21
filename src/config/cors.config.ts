@@ -3,7 +3,7 @@ import { config as envConfig } from './config';
 
 export const corsOptions: cors.CorsOptions = {
   origin: envConfig.CORS_ORIGIN,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
 };
 

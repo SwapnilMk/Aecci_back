@@ -38,8 +38,25 @@ export class UserService {
         panDocument: true,
         companyProfileDocument: true,
         productCatalogue: true,
+        documents: true,
         isEmailVerified: true,
         createdAt: true,
+        internationalBusinessIds: true,
+        internationalKycIds: true,
+        kycRejectionReason: true,
+        websiteUrl: true,
+        linkedinUrl: true,
+        yearEstablished: true,
+        companySize: true,
+        turnover: true,
+        industrySector: true,
+        businessAddress: true,
+        legalStructure: true,
+        businessRole: true,
+        products: true,
+        targetMarkets: true,
+        experience: true,
+        objective: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -65,8 +82,25 @@ export class UserService {
         panDocument: true,
         companyProfileDocument: true,
         productCatalogue: true,
+        documents: true,
         isEmailVerified: true,
         createdAt: true,
+        internationalBusinessIds: true,
+        internationalKycIds: true,
+        kycRejectionReason: true,
+        websiteUrl: true,
+        linkedinUrl: true,
+        yearEstablished: true,
+        companySize: true,
+        turnover: true,
+        industrySector: true,
+        businessAddress: true,
+        legalStructure: true,
+        businessRole: true,
+        products: true,
+        targetMarkets: true,
+        experience: true,
+        objective: true,
       },
     });
     return user;
@@ -84,6 +118,12 @@ export class UserService {
     if (partnerId) updateData.partnerId = partnerId;
     if (assignedPartnerFee !== undefined) updateData.assignedPartnerFee = assignedPartnerFee;
     if (assignedPartnerSlot) updateData.assignedPartnerSlot = assignedPartnerSlot;
+    
+    if (kycStatus === 'rejected') {
+      updateData.kycRejectionReason = reason;
+    } else {
+      updateData.kycRejectionReason = null; // Clear if re-approved
+    }
 
     const user = await prisma.user.update({
       where: { id: userId },

@@ -7,90 +7,94 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+type InternationalId {
+  type     String
+  idNumber String
+}
+
 model User {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  email          String   @unique
-  mobileNumber   String?
-  password       String?
-  fullName       String?
-  country        String?
-  userType       String?
-  companyName    String?
-  
+  id           String  @id @default(auto()) @map("_id") @db.ObjectId
+  email        String  @unique
+  mobileNumber String?
+  password     String?
+  fullName     String?
+  country      String?
+  userType     String?
+  companyName  String?
+
   // OTP Verification
-  isEmailVerified Boolean @default(false)
-  emailOtp        String?
-  emailOtpExpiry  DateTime?
+  isEmailVerified   Boolean   @default(false)
+  emailOtp          String?
+  emailOtpExpiry    DateTime?
   applicationNumber String?
 
-
   // Phase 3: Company Profile (Business)
-  iecNumber      String?
-  gstNumber      String?
-  panNumber      String?
-  internationalBusinessIds String?
-  websiteUrl     String?
-  linkedinUrl    String?
-  yearEstablished String?
-  companySize    String?
-  turnover       String?
-  industrySector String?
-  businessAddress String?
-  legalStructure  String?
+  iecNumber                String?
+  gstNumber                String?
+  panNumber                String?
+  internationalBusinessIds InternationalId[]
+  websiteUrl               String?
+  linkedinUrl              String?
+  yearEstablished          String?
+  companySize              String?
+  turnover                 String?
+  industrySector           String?
+  businessAddress          String?
+  legalStructure           String?
 
   // Phase 3: Business Profile (Business)
-  businessRole   String?
-  products       String[]
-  targetMarkets  String[]
+  businessRole      String[]
+  products          String[]
+  targetMarkets     String[]
   keyCertifications String[]
-  experience     String?
-  objective      String?
+  experience        String?
+  objective         String?
 
   // Phase 3: Profile (Individual)
-  professionalTitle String?
-  nationality       String?
-  linkedinProfileUrl String?
-  yearsOfExperience String?
-  aadharNumber      String?
-  internationalKycIds String?
-  expertiseAreas    String[]
-  sectorsOfInterest String[]
-  languagesSpoken   String[]
+  professionalTitle   String?
+  nationality         String?
+  linkedinProfileUrl  String?
+  yearsOfExperience   String?
+  aadharNumber        String?
+  internationalKycIds InternationalId[]
+  expertiseAreas      String[]
+  sectorsOfInterest   String[]
+  languagesSpoken     String[]
 
-  profilePicture   String?
+  profilePicture         String?
   // Documents
-  iecDocument      String?
-  gstDocument      String?
-  panDocument      String?
+  iecDocument            String?
+  gstDocument            String?
+  panDocument            String?
   companyProfileDocument String?
-  productCatalogue String[]
-  documents        String[]
+  productCatalogue       String[]
+  documents              String[]
 
-  kycStatus        String   @default("pending_verification") // pending_verification, approved, active, rejected
-  role             String   @default("user") // user, admin, partner
-  
+  kycStatus String @default("pending_verification") // pending_verification, approved, active, rejected
+  kycRejectionReason String?
+  role      String @default("user") // user, admin, partner
+
   // Post-Onboarding Partner & Pricing Flow
-  partnerId        String?  @db.ObjectId
-  partner          User?    @relation("PartnerAssignment", fields: [partnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  assignedClients  User[]   @relation("PartnerAssignment")
-  paymentStatus    String   @default("pending") // pending, paid
-  assignedPartnerFee Float?
+  partnerId           String?   @db.ObjectId
+  partner             User?     @relation("PartnerAssignment", fields: [partnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedClients     User[]    @relation("PartnerAssignment")
+  assignedPartnerFee  Float?
   assignedPartnerSlot DateTime?
-  
-  // New Relations for Deal Room Flow
-  sessionsHosted   Session[]             @relation("SessionHost")
-  registrations    SessionRegistration[]
-  questionsAsked   Question[]            @relation("QuestionAuthor")
-  questionsAssigned Question[]           @relation("QuestionAssignee")
-  reports          OpportunityReport[]
-  servicePurchases ServicePurchase[]
-  messagesSent     Message[]             @relation("MessageSender")
-  messagesReceived Message[]             @relation("MessageReceiver")
-  auditLogs        AuditLog[]
-  partnerProfile   PartnerProfile?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  // New Relations for Deal Room Flow
+  sessionsHosted    Session[]             @relation("SessionHost")
+  registrations     SessionRegistration[]
+  questionsAsked    Question[]            @relation("QuestionAuthor")
+  questionsAssigned Question[]            @relation("QuestionAssignee")
+  reports           OpportunityReport[]
+  servicePurchases  ServicePurchase[]
+  messagesSent      Message[]             @relation("MessageSender")
+  messagesReceived  Message[]             @relation("MessageReceiver")
+  auditLogs         AuditLog[]
+  partnerProfile    PartnerProfile?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Session {
@@ -106,154 +110,154 @@ model Session {
   price           Float
   status          String   @default("upcoming") // upcoming, live, completed
 
-  partnerId       String   @db.ObjectId
-  partner         User     @relation("SessionHost", fields: [partnerId], references: [id])
-  
-  registrations   SessionRegistration[]
-  reports         OpportunityReport[]
-  questions       Question[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  partnerId String @db.ObjectId
+  partner   User   @relation("SessionHost", fields: [partnerId], references: [id])
+
+  registrations SessionRegistration[]
+  reports       OpportunityReport[]
+  questions     Question[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SessionRegistration {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId           String   @db.ObjectId
-  sessionId        String   @db.ObjectId
-  paymentStatus    String   @default("pending") // pending, paid
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String    @db.ObjectId
+  sessionId        String    @db.ObjectId
+  paymentStatus    String    @default("pending") // pending, paid
   paymentReference String?
   transactionId    String?
   invoiceUrl       String?
   joinedAt         DateTime?
-  
-  user             User     @relation(fields: [userId], references: [id])
-  session          Session  @relation(fields: [sessionId], references: [id])
 
-  createdAt        DateTime @default(now())
-  
+  user    User    @relation(fields: [userId], references: [id])
+  session Session @relation(fields: [sessionId], references: [id])
+
+  createdAt DateTime @default(now())
+
   @@unique([userId, sessionId])
 }
 
 model CountryIntelligence {
-  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  country               String   @unique
+  id                    String @id @default(auto()) @map("_id") @db.ObjectId
+  country               String @unique
   marketOverview        String
   importRequirements    String
   distributionStructure String
   opportunities         String
   risks                 String
-  
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Question {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  type        String   // Product, Market, Expansion
-  content     String
-  status      String   @default("pending") // pending, answered
-  answer      String?
-  
-  userId      String   @db.ObjectId
-  user        User     @relation("QuestionAuthor", fields: [userId], references: [id])
-  
-  partnerId   String?  @db.ObjectId
-  partner     User?    @relation("QuestionAssignee", fields: [partnerId], references: [id])
-  
-  sessionId   String?  @db.ObjectId
-  session     Session? @relation(fields: [sessionId], references: [id])
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  type    String // Product, Market, Expansion
+  content String
+  status  String  @default("pending") // pending, answered
+  answer  String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  userId String @db.ObjectId
+  user   User   @relation("QuestionAuthor", fields: [userId], references: [id])
+
+  partnerId String? @db.ObjectId
+  partner   User?   @relation("QuestionAssignee", fields: [partnerId], references: [id])
+
+  sessionId String?  @db.ObjectId
+  session   Session? @relation(fields: [sessionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OpportunityReport {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  marketSummary     String
-  potentialRoutes   String
-  recommendations   String
-  pdfUrl            String?
-  
-  userId            String   @db.ObjectId
-  user              User     @relation(fields: [userId], references: [id])
-  
-  sessionId         String   @db.ObjectId
-  session           Session  @relation(fields: [sessionId], references: [id])
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  marketSummary   String
+  potentialRoutes String
+  recommendations String
+  pdfUrl          String?
 
-  createdAt         DateTime @default(now())
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  sessionId String  @db.ObjectId
+  session   Session @relation(fields: [sessionId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
 model ServicePurchase {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  serviceType    String   // Advisory, Documentation, Partner Coordination, Market Entry
-  price          Float
-  paymentStatus  String   @default("pending") // pending, paid, invoiced
-  invoiceUrl     String?
-  
-  userId         String   @db.ObjectId
-  user           User     @relation(fields: [userId], references: [id])
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
+  serviceType   String // Advisory, Documentation, Partner Coordination, Market Entry
+  price         Float
+  paymentStatus String  @default("pending") // pending, paid, invoiced
+  invoiceUrl    String?
 
-  createdAt      DateTime @default(now())
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
 model Message {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  type        String   @default("notification") // support, partner, notification
-  subject     String?
-  content     String
-  isRead      Boolean  @default(false)
-  
-  senderId    String?  @db.ObjectId // Optional: system notifications have no sender
-  sender      User?    @relation("MessageSender", fields: [senderId], references: [id])
-  
-  receiverId  String   @db.ObjectId
-  receiver    User     @relation("MessageReceiver", fields: [receiverId], references: [id])
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  type    String  @default("notification") // support, partner, notification
+  subject String?
+  content String
+  isRead  Boolean @default(false)
 
-  createdAt   DateTime @default(now())
+  senderId String? @db.ObjectId // Optional: system notifications have no sender
+  sender   User?   @relation("MessageSender", fields: [senderId], references: [id])
+
+  receiverId String @db.ObjectId
+  receiver   User   @relation("MessageReceiver", fields: [receiverId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
 model AuditLog {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  action      String   // e.g., 'accepted_booking_terms', 'joined_live_room'
-  ipAddress   String?
-  metadata    Json?    // Stores browser info, timestamps, exact terms agreed to
-  
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id])
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  action    String // e.g., 'accepted_booking_terms', 'joined_live_room'
+  ipAddress String?
+  metadata  Json? // Stores browser info, timestamps, exact terms agreed to
 
-  createdAt   DateTime @default(now())
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
 model PartnerProfile {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId            String   @unique @db.ObjectId
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @unique @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Application Info
-  organization      String?
+  organization       String?
   expertiseCountries String[]
   expertiseSectors   String[]
-  motivation        String?
-  
+  motivation         String?
+
   // Verification Docs
-  governmentId      String?
-  professionalCert  String?
-  businessProof     String?
-  references        String?
-  
+  governmentId     String?
+  professionalCert String?
+  businessProof    String?
+  references       String?
+
   // Admin Assigned
-  tier              String   @default("Standard") // Standard, Premium, Specialist
-  status            String   @default("pending_review") // pending_review, approved, active, suspended
-  
+  tier   String @default("Standard") // Standard, Premium, Specialist
+  status String @default("pending_review") // pending_review, approved, active, suspended
+
   // Setup Info
-  bio               String?
-  availability      Json?    // Array of available slots/days
-  
+  bio          String?
+  availability Json? // Array of available slots/days
+
   // Legal
-  signedAgreement   Boolean  @default(false)
-  agreementDate     DateTime?
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  signedAgreement Boolean   @default(false)
+  agreementDate   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

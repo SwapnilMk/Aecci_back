@@ -67,7 +67,7 @@ export class AuthController {
         },
       });
     } catch (error: any) {
-      if (['Email and password are required', 'Invalid credentials', 'Invalid or expired OTP'].includes(error.message)) {
+      if (['Email and password are required', 'Invalid credentials', 'Invalid or expired OTP', 'Application under review. We will notify you once approved.'].includes(error.message)) {
         res.status(400).json({ success: false, message: error.message });
       } else {
         console.error('Login error:', error);

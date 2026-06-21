@@ -69,12 +69,6 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const payloadData = { ...restData };
-    if (typeof payloadData.internationalBusinessIds === 'object') {
-      payloadData.internationalBusinessIds = JSON.stringify(payloadData.internationalBusinessIds);
-    }
-    if (typeof payloadData.internationalKycIds === 'object') {
-      payloadData.internationalKycIds = JSON.stringify(payloadData.internationalKycIds);
-    }
 
     const arrayFields = [
       'products', 'targetMarkets', 'keyCertifications',
@@ -123,6 +117,12 @@ export class AuthService {
   }
 
   async updateProfile(userId: string, profileData: any): Promise<any> {
+    if (profileData.resubmit) {
+      profileData.kycStatus = 'pending_verification';
+      profileData.kycRejectionReason = null;
+      delete profileData.resubmit;
+    }
+
     const user = await prisma.user.update({
       where: { id: userId },
       data: profileData
@@ -170,6 +170,10 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new Error('Invalid credentials');
+    }
+
+    if (user.role !== 'admin' && user.kycStatus === 'pending_verification') {
+      throw new Error('Application under review. We will notify you once approved.');
     }
 
     if (user.role === 'admin') {

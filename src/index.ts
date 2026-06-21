@@ -8,6 +8,8 @@ import paymentRoutes from './routes/payment.routes';
 import partnerRoutes from './routes/partner.routes';
 import reportRoutes from './routes/report.routes';
 import serviceRoutes from './routes/service.routes';
+import countryIntelligenceRoutes from './routes/country-intelligence.routes';
+import questionRoutes from './routes/question.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { corsConfig } from './config/cors.config';
 import { config } from './config/config';
@@ -35,6 +37,8 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/partners', partnerRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/country-intelligence', countryIntelligenceRoutes);
+app.use('/api/questions', questionRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);

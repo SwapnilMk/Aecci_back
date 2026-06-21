@@ -9,8 +9,11 @@ export const upload = multer({
     s3: s3Client,
     bucket: config.AWS_BUCKET_NAME,
     contentType: multerS3.AUTO_CONTENT_TYPE,
-    key: function (req, file, cb) {
-      cb(null, 'aecciglobal/' + Date.now().toString() + '-' + file.originalname);
+    key: function (req: any, file, cb) {
+      const folderParam = req.query?.folder as string;
+      const folder = folderParam === 'catalog' ? 'global/catelog' : 'global/documents';
+      const safeFileName = file.originalname.replace(/[\/\\]/g, '_');
+      cb(null, 'aecciglobal/' + folder + '/' + Date.now().toString() + '-' + safeFileName);
     },
   }),
 });
