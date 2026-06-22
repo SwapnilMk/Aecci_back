@@ -27,6 +27,24 @@ const worker = new Worker('invoice-queue', async job => {
       console.error(`[Worker] Error generating invoice for session ${sessionId}:`, error);
       throw error; // Let BullMQ handle retries
     }
+  } else if (type === 'generateSubscriptionInvoice') {
+    const { invoiceData, userId, purchaseId } = payload;
+    try {
+      console.log(`[Worker] Processing generateSubscriptionInvoice for purchase ${purchaseId} and user ${userId}`);
+      // 1. Generate and Upload
+      const url = await InvoiceService.generateAndUploadInvoice(invoiceData);
+      
+      // 2. Update Database
+      await prisma.subscriptionPurchase.update({
+        where: { id: purchaseId },
+        data: { invoiceUrl: url }
+      });
+      
+      console.log(`[Worker] Successfully generated subscription invoice: ${url}`);
+    } catch (error) {
+      console.error(`[Worker] Error generating subscription invoice for purchase ${purchaseId}:`, error);
+      throw error;
+    }
   }
 }, { connection: redis as any });
 

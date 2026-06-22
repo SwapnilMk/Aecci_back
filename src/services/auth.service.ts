@@ -70,6 +70,8 @@ export class AuthService {
 
     const payloadData = { ...restData };
 
+    this.validateOnboardingData(payloadData);
+
     const arrayFields = [
       'products', 'targetMarkets', 'keyCertifications',
       'expertiseAreas', 'sectorsOfInterest', 'languagesSpoken'
@@ -118,6 +120,7 @@ export class AuthService {
 
   async updateProfile(userId: string, profileData: any): Promise<any> {
     if (profileData.resubmit) {
+      this.validateOnboardingData(profileData);
       profileData.kycStatus = 'pending_verification';
       profileData.kycRejectionReason = null;
       delete profileData.resubmit;
@@ -170,10 +173,6 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new Error('Invalid credentials');
-    }
-
-    if (user.role !== 'admin' && user.kycStatus === 'pending_verification') {
-      throw new Error('Application under review. We will notify you once approved.');
     }
 
     if (user.role === 'admin') {
@@ -265,6 +264,33 @@ export class AuthService {
     await redis.del(`reset_token:${email}`);
 
     return { success: true, message: 'Password reset successfully' };
+  }
+
+  private validateOnboardingData(data: any) {
+    const { userType, country, documents, legalStructure, yearEstablished, companySize, turnover, industrySector, businessAddress } = data;
+
+    if (!documents || !Array.isArray(documents) || documents.length === 0) {
+      throw new Error('At least one compliance document is required');
+    }
+
+    if (userType === 'business') {
+      if (!legalStructure || !yearEstablished || !companySize || !turnover || !industrySector || !businessAddress) {
+        throw new Error('Missing required business profile fields');
+      }
+      if (country !== 'India') {
+        const ids = data.internationalBusinessIds;
+        if (!ids || !Array.isArray(ids) || ids.length === 0 || !ids.some((id: any) => id.type && id.idNumber)) {
+          throw new Error('International businesses must provide at least one International Business ID');
+        }
+      }
+    } else if (userType === 'individual') {
+      if (country !== 'India') {
+        const ids = data.internationalKycIds;
+        if (!ids || !Array.isArray(ids) || ids.length === 0 || !ids.some((id: any) => id.type && id.idNumber)) {
+          throw new Error('International individuals must provide at least one International KYC ID');
+        }
+      }
+    }
   }
 
   private generateTokens(user: any): { accessToken: string; refreshToken: string } {

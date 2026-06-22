@@ -19,7 +19,11 @@ export class InvoiceService {
     description: string;
     date: Date;
     invoiceId: string;
+    currency?: string;
   }): Promise<string> {
+    const currencyStr = data.currency || 'USD';
+    const symbol = currencyStr === 'INR' ? '₹' : '$';
+    
     return `
       <!DOCTYPE html>
       <html>
@@ -67,17 +71,17 @@ export class InvoiceService {
             <thead>
               <tr>
                 <th>Description</th>
-                <th style="text-align: right;">Amount (USD)</th>
+                <th style="text-align: right;">Amount (${currencyStr})</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>${data.description}</td>
-                <td style="text-align: right;">$${data.amount.toFixed(2)}</td>
+                <td style="text-align: right;">${symbol}${data.amount.toFixed(2)}</td>
               </tr>
               <tr>
                 <td style="text-align: right;"><strong>Total</strong></td>
-                <td style="text-align: right;" class="total">$${data.amount.toFixed(2)}</td>
+                <td style="text-align: right;" class="total">${symbol}${data.amount.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>

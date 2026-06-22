@@ -52,6 +52,14 @@ export const requireKycApproved = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
+    if (user.kycStatus === 'rejected') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Access Restricted: Your application was rejected. Please review and resubmit.',
+        code: 'KYC_REJECTED'
+      });
+    }
+
     next();
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Internal server error during authorization' });

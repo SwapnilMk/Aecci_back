@@ -68,6 +68,17 @@ export class PartnerService {
   }
 
   static async updateSetupInfo(userId: string, data: any) {
+    if (data.profilePicture !== undefined || data.languagesSpoken !== undefined) {
+      const userUpdateData: any = {};
+      if (data.profilePicture !== undefined) userUpdateData.profilePicture = data.profilePicture;
+      if (data.languagesSpoken !== undefined) userUpdateData.languagesSpoken = data.languagesSpoken;
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: userUpdateData
+      });
+    }
+
     return await prisma.partnerProfile.update({
       where: { userId },
       data: {
@@ -110,5 +121,72 @@ export class PartnerService {
     });
 
     return { user, partnerProfile };
+  }
+
+  static async getMarketplaceProfiles(country?: string) {
+    const where: any = {
+      status: { in: ['approved', 'active'] }
+    };
+    if (country) {
+      where.expertiseCountries = { has: country };
+    }
+
+    return await prisma.partnerProfile.findMany({
+      where,
+      select: {
+        id: true,
+        userId: true,
+        organization: true,
+        expertiseCountries: true,
+        expertiseSectors: true,
+        tier: true,
+        bio: true,
+        availability: true,
+        status: true,
+        user: {
+          select: {
+            fullName: true,
+            profilePicture: true,
+            languagesSpoken: true,
+            country: true,
+            yearsOfExperience: true,
+            professionalTitle: true
+          }
+        }
+      }
+    });
+  }
+
+  static async getMarketplaceProfileDetail(userId: string) {
+    const profile = await prisma.partnerProfile.findUnique({
+      where: { userId },
+      select: {
+        id: true,
+        userId: true,
+        organization: true,
+        expertiseCountries: true,
+        expertiseSectors: true,
+        tier: true,
+        bio: true,
+        availability: true,
+        status: true,
+        user: {
+          select: {
+            fullName: true,
+            profilePicture: true,
+            languagesSpoken: true,
+            country: true,
+            yearsOfExperience: true,
+            professionalTitle: true
+          }
+        }
+      }
+    });
+
+    if (!profile || !['approved', 'active'].includes(profile.status)) {
+      throw new Error('Partner profile not found or inactive');
+    }
+
+    return profile;
   }
 }

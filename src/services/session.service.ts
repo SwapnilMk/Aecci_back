@@ -34,7 +34,16 @@ export class SessionService {
             fullName: true,
             companyName: true,
           }
-        }
+        },
+        client: {
+          select: {
+            id: true,
+            fullName: true,
+            companyName: true,
+            country: true,
+          }
+        },
+        reports: true
       },
       orderBy: { date: 'asc' },
     });
@@ -101,6 +110,130 @@ export class SessionService {
       });
 
       return registration;
+    });
+  }
+
+  static async requestSession(clientId: string, partnerId: string, date: string, questionnaire: string) {
+    const client = await prisma.user.findUnique({ where: { id: clientId } });
+    if (!client) throw new Error("Client user not found");
+    if (!client.planActive || client.slotsRemaining <= 0) {
+      throw new Error("You must purchase a plan and have remaining slots to request a booking");
+    }
+
+    const partner = await prisma.user.findUnique({ where: { id: partnerId } });
+    if (!partner) throw new Error("Partner user not found");
+
+    const session = await prisma.session.create({
+      data: {
+        title: `Deal Room: ${client.fullName || 'Client'} & ${partner.fullName || 'Partner'}`,
+        country: partner.country || '',
+        date: new Date(date),
+        durationMinutes: 45,
+        seatsTotal: 1,
+        seatsAvailable: 1,
+        price: 0,
+        status: "pending_approval",
+        partnerId,
+        clientId,
+        questionnaire
+      }
+    });
+
+    return session;
+  }
+
+  static async getClientSessions(userId: string) {
+    return await prisma.session.findMany({
+      where: {
+        OR: [
+          { clientId: userId },
+          { partnerId: userId }
+        ]
+      },
+      include: {
+        partner: {
+          select: { id: true, fullName: true, companyName: true, country: true, profilePicture: true }
+        },
+        client: {
+          select: { id: true, fullName: true, companyName: true, country: true, profilePicture: true }
+        }
+      },
+      orderBy: { date: 'asc' }
+    });
+  }
+
+  static async approveSession(sessionId: string) {
+    return await prisma.$transaction(async (tx) => {
+      const session = await tx.session.findUnique({
+        where: { id: sessionId },
+        include: { client: true }
+      });
+
+      if (!session) throw new Error("Session request not found");
+      if (session.status !== "pending_approval") throw new Error("Session is not in pending status");
+      
+      const clientId = session.clientId;
+      if (!clientId) throw new Error("No client associated with this booking");
+
+      const client = await tx.user.findUnique({ where: { id: clientId } });
+      if (!client) throw new Error("Associated client not found");
+      if (!client.planActive || client.slotsRemaining <= 0) {
+        throw new Error("Client has no remaining session slots");
+      }
+
+      // Deduct slot from client
+      await tx.user.update({
+        where: { id: clientId },
+        data: { slotsRemaining: { decrement: 1 } }
+      });
+
+      // Update session status to upcoming
+      const updatedSession = await tx.session.update({
+        where: { id: sessionId },
+        data: { status: "upcoming" }
+      });
+
+      return updatedSession;
+    });
+  }
+
+  static async rejectSession(sessionId: string) {
+    const session = await prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session) throw new Error("Session request not found");
+    if (session.status !== "pending_approval") throw new Error("Session is not in pending status");
+
+    return await prisma.session.update({
+      where: { id: sessionId },
+      data: { status: "rejected" }
+    });
+  }
+
+  static async getPendingRequests() {
+    return await prisma.session.findMany({
+      where: { status: "pending_approval" },
+      include: {
+        client: {
+          select: { id: true, fullName: true, companyName: true, country: true }
+        },
+        partner: {
+          select: { id: true, fullName: true, companyName: true, country: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  static async submitSessionSummary(sessionId: string, partnerId: string, summary: string) {
+    const session = await prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session) throw new Error("Session not found");
+    if (session.partnerId !== partnerId) throw new Error("You are not authorized to submit summary for this session");
+
+    return await prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        postSessionSummary: summary,
+        status: "completed"
+      }
     });
   }
 }

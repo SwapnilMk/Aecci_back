@@ -8,6 +8,10 @@ const router = Router();
 // A normal user applies to become a partner
 router.post('/apply', authenticate, PartnerController.applyForPartnership);
 
+// Marketplace client routes (confidential sanitised listings)
+router.get('/marketplace/list', authenticate, PartnerController.getMarketplacePartners);
+router.get('/marketplace/detail/:userId', authenticate, PartnerController.getMarketplacePartnerDetail);
+
 // Admin routes
 // Manually create a partner
 router.post('/admin/create', authenticate, requireRole(['admin']), PartnerController.createPartnerManually);

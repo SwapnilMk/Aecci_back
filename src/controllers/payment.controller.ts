@@ -4,6 +4,34 @@ import { InvoiceService } from '../services/invoice.service';
 import { invoiceQueue } from '../queues/invoice.queue';
 import { prisma } from '../config/db.config';
 import { v4 as uuidv4 } from 'uuid';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
+
+const PLANS_CONFIG: Record<string, { price: number; slots: number; validityDays: number; description: string }> = {
+  explorer: {
+    price: 3999,
+    slots: 1,
+    validityDays: 30,
+    description: "AECCI Global Deal Room Explorer Plan"
+  },
+  growth: {
+    price: 14999,
+    slots: 4,
+    validityDays: 90,
+    description: "AECCI Global Deal Room Growth Plan"
+  },
+  market_entry: {
+    price: 44999,
+    slots: 8,
+    validityDays: 180,
+    description: "AECCI Global Deal Room Market Entry Plan"
+  },
+  enterprise: {
+    price: 150000,
+    slots: 9999,
+    validityDays: 365,
+    description: "AECCI Global Deal Room Enterprise Plan"
+  }
+};
 
 export class PaymentController {
   static async createOrder(req: Request, res: Response) {
@@ -126,6 +154,171 @@ export class PaymentController {
     } catch (error) {
       console.error('Error in verifyPayment:', error);
       res.status(500).json({ success: false, message: 'Payment verification failed' });
+    }
+  }
+
+  static async createSubscriptionOrder(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { planName } = req.body;
+      const userId = req.user.id;
+
+      if (!planName || !PLANS_CONFIG[planName]) {
+        return res.status(400).json({ success: false, message: 'Valid planName is required' });
+      }
+
+      const plan = PLANS_CONFIG[planName];
+      const receiptId = `sub_${uuidv4().split('-')[0]}`;
+      const order = await PaymentService.createOrder(plan.price, receiptId, 'INR');
+
+      // Create a pending SubscriptionPurchase record
+      await prisma.subscriptionPurchase.create({
+        data: {
+          userId,
+          planName,
+          amount: plan.price,
+          currency: 'INR',
+          paymentStatus: 'pending',
+          orderId: order.id,
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        orderId: order.id,
+        amount: order.amount,
+        currency: 'INR',
+      });
+    } catch (error) {
+      console.error('Error creating subscription order:', error);
+      res.status(500).json({ success: false, message: 'Failed to create subscription order' });
+    }
+  }
+
+  static async verifySubscriptionPayment(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { 
+        razorpay_order_id, 
+        razorpay_payment_id, 
+        razorpay_signature,
+        planName 
+      } = req.body;
+      const userId = req.user.id;
+
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !planName) {
+        return res.status(400).json({ success: false, message: 'Missing required payment verification fields' });
+      }
+
+      const plan = PLANS_CONFIG[planName];
+      if (!plan) {
+        return res.status(400).json({ success: false, message: 'Invalid plan selected' });
+      }
+
+      // 1. Verify Signature
+      const isValid = PaymentService.verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+      if (!isValid) {
+        return res.status(400).json({ success: false, message: 'Invalid payment signature' });
+      }
+
+      // 2. Find pending purchase
+      const pendingPurchase = await prisma.subscriptionPurchase.findFirst({
+        where: { orderId: razorpay_order_id, paymentStatus: 'pending' }
+      });
+
+      let purchaseId = pendingPurchase?.id;
+
+      // Update SubscriptionPurchase
+      if (pendingPurchase) {
+        await prisma.subscriptionPurchase.update({
+          where: { id: pendingPurchase.id },
+          data: {
+            paymentStatus: 'paid',
+            paymentReference: razorpay_payment_id
+          }
+        });
+      } else {
+        // If not found (e.g. timeout or race condition), create it as paid
+        const newPurchase = await prisma.subscriptionPurchase.create({
+          data: {
+            userId,
+            planName,
+            amount: plan.price,
+            currency: 'INR',
+            paymentStatus: 'paid',
+            orderId: razorpay_order_id,
+            paymentReference: razorpay_payment_id
+          }
+        });
+        purchaseId = newPurchase.id;
+      }
+
+      // Calculate new expiry date
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + plan.validityDays);
+
+      // Get user to fetch name and companyName for invoice
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      // Update User plan fields
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          planName,
+          planActive: true,
+          planExpiresAt: expiryDate,
+          slotsTotal: { increment: plan.slots },
+          slotsRemaining: { increment: plan.slots },
+          kycStatus: user.kycStatus === 'approved' ? 'active' : user.kycStatus
+        }
+      });
+
+      // 3. Queue Subscription Invoice Generation
+      const invoiceData = {
+        userName: user.fullName || 'User',
+        companyName: user.companyName || '',
+        amount: plan.price,
+        description: plan.description,
+        date: new Date(),
+        invoiceId: `INV-SUB-${uuidv4().split('-')[0].toUpperCase()}`,
+        currency: 'INR'
+      };
+
+      await invoiceQueue.add('generateSubscriptionInvoice', {
+        type: 'generateSubscriptionInvoice',
+        payload: {
+          invoiceData,
+          userId,
+          purchaseId
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Subscription payment verified successfully',
+      });
+    } catch (error) {
+      console.error('Error verifying subscription payment:', error);
+      res.status(500).json({ success: false, message: 'Subscription payment verification failed' });
+    }
+  }
+
+  static async getSubscriptionHistory(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user.id;
+      const history = await prisma.subscriptionPurchase.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      res.status(200).json({
+        success: true,
+        data: history
+      });
+    } catch (error) {
+      console.error('Error fetching subscription history:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch subscription history' });
     }
   }
 }

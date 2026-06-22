@@ -115,4 +115,35 @@ export class PartnerController {
       res.status(500).json({ success: false, message: error.message || 'Failed to create partner manually' });
     }
   }
+
+  static async getMarketplacePartners(req: Request, res: Response) {
+    try {
+      const { country } = req.query;
+      const countryStr = typeof country === 'string' ? country : undefined;
+      const profiles = await PartnerService.getMarketplaceProfiles(countryStr);
+      
+      res.status(200).json({
+        success: true,
+        data: profiles
+      });
+    } catch (error: any) {
+      console.error('Error fetching marketplace partners:', error);
+      res.status(500).json({ success: false, message: error.message || 'Failed to fetch marketplace partners' });
+    }
+  }
+
+  static async getMarketplacePartnerDetail(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const profile = await PartnerService.getMarketplaceProfileDetail(userId as string);
+      
+      res.status(200).json({
+        success: true,
+        data: profile
+      });
+    } catch (error: any) {
+      console.error('Error fetching marketplace partner detail:', error);
+      res.status(404).json({ success: false, message: error.message || 'Failed to fetch marketplace partner detail' });
+    }
+  }
 }
