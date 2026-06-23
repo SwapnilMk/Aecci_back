@@ -261,16 +261,25 @@ export class PaymentController {
         return res.status(404).json({ success: false, message: 'User not found' });
       }
 
-      // Update User plan fields
+      // Update User plan fields — set slots (not increment) to prevent stacking on re-purchase
+      // For upgrades, add the difference between new plan and current total
+      const currentSlotsTotal = user.slotsTotal || 0;
+      const currentSlotsRemaining = user.slotsRemaining || 0;
+      const newSlotsTotal = plan.slots;
+      // If upgrading, only add the incremental slots; if same/downgrade, set to new plan
+      const slotsToAdd = Math.max(newSlotsTotal - currentSlotsTotal, 0);
+      const finalSlotsTotal = currentSlotsTotal + slotsToAdd;
+      const finalSlotsRemaining = currentSlotsRemaining + slotsToAdd;
+
       await prisma.user.update({
         where: { id: userId },
         data: {
           planName,
           planActive: true,
           planExpiresAt: expiryDate,
-          slotsTotal: { increment: plan.slots },
-          slotsRemaining: { increment: plan.slots },
-          kycStatus: user.kycStatus === 'approved' ? 'active' : user.kycStatus
+          slotsTotal: finalSlotsTotal,
+          slotsRemaining: finalSlotsRemaining,
+          kycStatus: user.kycStatus === 'approved' ? 'active' : user.kycStatus,
         }
       });
 
@@ -318,6 +327,47 @@ export class PaymentController {
       });
     } catch (error) {
       console.error('Error fetching subscription history:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch subscription history' });
+    }
+  }
+
+  static async getAllSubscriptionHistory(req: AuthenticatedRequest, res: Response) {
+    try {
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, parseInt(req.query.limit as string) || 30);
+      const search = (req.query.search as string) || '';
+      const skip = (page - 1) * limit;
+
+      const userFilter = search
+        ? {
+            user: {
+              OR: [
+                { email: { contains: search, mode: 'insensitive' as const } },
+                { fullName: { contains: search, mode: 'insensitive' as const } },
+                { companyName: { contains: search, mode: 'insensitive' as const } },
+              ],
+            },
+          }
+        : {};
+
+      const [data, total] = await Promise.all([
+        prisma.subscriptionPurchase.findMany({
+          where: userFilter,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+          include: {
+            user: {
+              select: { fullName: true, email: true, companyName: true },
+            },
+          },
+        }),
+        prisma.subscriptionPurchase.count({ where: userFilter }),
+      ]);
+
+      res.status(200).json({ success: true, data, total, page, limit });
+    } catch (error) {
+      console.error('Error fetching all subscription history:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch subscription history' });
     }
   }

@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/db.config';
+import { filterIntelligenceByPlan } from '../middlewares/plan.middleware';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class CountryIntelligenceController {
-  // Admin CRUD
   async createBrief(req: Request, res: Response) {
     try {
       const { country, marketOverview, importRequirements, distributionStructure, opportunities, risks } = req.body;
@@ -19,21 +20,23 @@ export class CountryIntelligenceController {
     }
   }
 
-  async getBriefs(req: Request, res: Response) {
+  async getBriefs(req: AuthenticatedRequest, res: Response) {
     try {
       const briefs = await prisma.countryIntelligence.findMany();
-      res.status(200).json({ success: true, data: briefs });
+      const hasFullAccess = (req as any).hasFullIntelligence ?? (req.user?.role !== 'user');
+      res.status(200).json({ success: true, data: filterIntelligenceByPlan(briefs, hasFullAccess) });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
   }
 
-  async getBriefById(req: Request, res: Response) {
+  async getBriefById(req: AuthenticatedRequest, res: Response) {
     try {
       const { id } = req.params;
       const brief = await prisma.countryIntelligence.findUnique({ where: { id: id as string } });
       if (!brief) return res.status(404).json({ success: false, message: 'Not found' });
-      res.status(200).json({ success: true, data: brief });
+      const hasFullAccess = (req as any).hasFullIntelligence ?? (req.user?.role !== 'user');
+      res.status(200).json({ success: true, data: filterIntelligenceByPlan(brief, hasFullAccess) });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -42,10 +45,9 @@ export class CountryIntelligenceController {
   async updateBrief(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const data = req.body;
       const brief = await prisma.countryIntelligence.update({
         where: { id: id as string },
-        data
+        data: req.body
       });
       res.status(200).json({ success: true, data: brief });
     } catch (error: any) {

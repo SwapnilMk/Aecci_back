@@ -100,10 +100,66 @@ export class EmailService {
     await this.sendMail(email, template.subject, template.text);
   }
 
-  // 8. Session Confirmation
-  async sendSessionConfirmation(email: string, name: string, country: string, date: string, time: string) {
+  // 8. Session Confirmation (with optional ICS attachment)
+  async sendSessionConfirmation(
+    email: string,
+    name: string,
+    country: string,
+    date: string,
+    time: string,
+    meetingLink?: string,
+    icsContent?: string
+  ) {
     const template = emailTemplates.sessionConfirmation(name, country, date, time);
-    await this.sendMail(email, template.subject, template.text);
+
+    if (!config.AWS_SES_SENDER_EMAIL) {
+      console.log(`[Mock Email → ${email}] ${template.subject}`);
+      return;
+    }
+
+    const attachments: any[] = [];
+    if (icsContent) {
+      attachments.push({
+        filename: 'session.ics',
+        content: Buffer.from(icsContent),
+        contentType: 'text/calendar',
+      });
+    }
+
+    const mailOptions: any = {
+      from: config.AWS_SES_SENDER_EMAIL,
+      to: email,
+      subject: template.subject,
+      text: meetingLink ? `${template.text}\n\nJoin Room: ${meetingLink}` : template.text,
+    };
+
+    if (attachments.length > 0) {
+      mailOptions.attachments = attachments;
+    }
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`Session confirmation email sent to ${email}`);
+    } catch (error) {
+      console.error('Error sending session confirmation email:', error);
+    }
+  }
+
+  async sendAdminSummaryReady(sessionId: string, sessionTitle: string, partnerName: string) {
+    if (!config.AWS_SES_SENDER_EMAIL) {
+      console.log(`[Mock Email - Admin] Post-session summary ready for session ${sessionId}`);
+      return;
+    }
+    try {
+      await transporter.sendMail({
+        from: config.AWS_SES_SENDER_EMAIL,
+        to: config.AWS_SES_SENDER_EMAIL, // notify the admin inbox
+        subject: `[Action Required] Post-Session Summary Ready — ${sessionTitle}`,
+        text: `Partner ${partnerName} has submitted the post-session summary for:\n\nSession: ${sessionTitle}\nSession ID: ${sessionId}\n\nPlease log in to the Admin portal to generate and upload the Opportunity Report.\n\nRegards,\nAECCI Platform`,
+      });
+    } catch (error) {
+      console.error('Error sending admin summary ready email:', error);
+    }
   }
 
   // 9. Country Brief Available

@@ -91,9 +91,9 @@ export class PartnerService {
   }
 
   static async createPartnerManually(data: any) {
-    // Admin directly creating a partner
-    // Generate a secure random password if not provided
-    const password = data.password || Math.random().toString(36).slice(-8);
+    const bcrypt = await import('bcrypt');
+    const rawPassword = data.password || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
     const user = await prisma.user.create({
       data: {
@@ -101,7 +101,7 @@ export class PartnerService {
         fullName: data.fullName,
         mobileNumber: data.mobileNumber,
         country: data.country,
-        password: password, // In real scenario, hash this!
+        password: hashedPassword,
         role: 'partner',
         kycStatus: 'active',
         isEmailVerified: true,

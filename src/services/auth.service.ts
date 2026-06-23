@@ -88,6 +88,7 @@ export class AuthService {
         email,
         password: hashedPassword,
         isEmailVerified: true,
+        applicationNumber: `AECCI-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
         ...payloadData,
       },
     });
@@ -118,21 +119,49 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
+  // Fields users are allowed to update via self-service profile update
+  private readonly ALLOWED_PROFILE_FIELDS = new Set([
+    'fullName', 'mobileNumber', 'country', 'companyName', 'referralSource',
+    'iecNumber', 'gstNumber', 'panNumber', 'internationalBusinessIds',
+    'websiteUrl', 'linkedinUrl', 'yearEstablished', 'companySize', 'turnover',
+    'industrySector', 'businessAddress', 'legalStructure',
+    'businessRole', 'products', 'targetMarkets', 'keyCertifications',
+    'experience', 'objective',
+    'professionalTitle', 'nationality', 'linkedinProfileUrl', 'yearsOfExperience',
+    'aadharNumber', 'internationalKycIds', 'expertiseAreas', 'sectorsOfInterest',
+    'languagesSpoken', 'businessAssociation',
+    'profilePicture', 'iecDocument', 'gstDocument', 'panDocument',
+    'companyProfileDocument', 'productCatalogue', 'documents',
+    'resubmit',
+  ]);
+
   async updateProfile(userId: string, profileData: any): Promise<any> {
-    if (profileData.resubmit) {
-      this.validateOnboardingData(profileData);
-      profileData.kycStatus = 'pending_verification';
-      profileData.kycRejectionReason = null;
-      delete profileData.resubmit;
+    // Strip any fields the user must not be allowed to self-modify
+    const sanitized: any = {};
+    for (const key of Object.keys(profileData)) {
+      if (this.ALLOWED_PROFILE_FIELDS.has(key)) {
+        sanitized[key] = profileData[key];
+      }
+    }
+
+    const isResubmit = Boolean(sanitized.resubmit);
+    delete sanitized.resubmit;
+
+    if (isResubmit) {
+      this.validateOnboardingData({ ...sanitized, userType: profileData.userType, country: profileData.country });
+      sanitized.kycStatus = 'pending_verification';
+      sanitized.kycRejectionReason = null;
     }
 
     const user = await prisma.user.update({
       where: { id: userId },
-      data: profileData
+      data: sanitized,
     });
 
-    // Send "Registration Successfully Submitted" email
-    await emailService.sendRegistrationSubmitted(user.email, user.fullName || 'User', user.id);
+    // Only send the resubmission email when actually resubmitting
+    if (isResubmit) {
+      await emailService.sendRegistrationSubmitted(user.email, user.fullName || 'User', user.id);
+    }
 
     const { password: _, ...userToReturn } = user;
     return userToReturn;
@@ -178,7 +207,7 @@ export class AuthService {
     if (user.role === 'admin') {
       if (!otp) {
         const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        await redis.setex(`admin_otp:${email}`, 300, emailOtp); // 5 mins
+        await redis.setex(`admin_otp:${email}`, 120, emailOtp); // 120 seconds per ROADMAP
 
         // Log the OTP for easy local testing
         console.log(`\n========================================`);

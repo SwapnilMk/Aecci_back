@@ -68,6 +68,11 @@ model User {
   sectorsOfInterest   String[]
   languagesSpoken     String[]
 
+  // Optional registration fields
+  referralSource         String?
+  businessAssociation    String?
+  reportsUsed            Int       @default(0)
+
   profilePicture         String?
   // Documents
   iecDocument            String?
@@ -77,8 +82,7 @@ model User {
   productCatalogue       String[]
   documents              String[]
 
-  kycStatus String @default("pending_verification") // pending_verification, approved, active, rejected
-  kycRejectionReason String?
+  kycStatus String @default("pending_verification") // pending_verification, approved, active, rejected  kycRejectionReason String?
   role      String @default("user") // user, admin, partner
 
   // Post-Onboarding Partner & Pricing Flow

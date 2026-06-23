@@ -10,6 +10,7 @@ import reportRoutes from './routes/report.routes';
 import serviceRoutes from './routes/service.routes';
 import countryIntelligenceRoutes from './routes/country-intelligence.routes';
 import questionRoutes from './routes/question.routes';
+import auditRoutes from './routes/audit.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { corsConfig } from './config/cors.config';
 import { config } from './config/config';
@@ -39,6 +40,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/country-intelligence', countryIntelligenceRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/audit', auditRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);
