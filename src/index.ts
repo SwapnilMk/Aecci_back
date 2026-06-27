@@ -23,6 +23,7 @@ import './queues/email.queue';
 import './queues/invoice.queue';
 
 const app = express();
+app.set('trust proxy', 1); // Trust Nginx reverse proxy
 const PORT = config.PORT;
 
 // Middleware
