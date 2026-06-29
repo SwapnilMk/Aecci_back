@@ -4,6 +4,7 @@ import { InvoiceService } from '../services/invoice.service';
 import { invoiceQueue } from '../queues/invoice.queue';
 import { prisma } from '../config/db.config';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 const PLANS_CONFIG: Record<string, { price: number; slots: number; validityDays: number; description: string }> = {
@@ -50,7 +51,7 @@ export class PaymentController {
 
       // 2. Create Razorpay Order
       const receiptId = `rcpt_${uuidv4().split('-')[0]}`;
-      const order = await PaymentService.createOrder(session.price, receiptId);
+      const order = await PaymentService.createOrder(session.price, receiptId, 'INR');
 
       // 3. Return Order ID to frontend
       res.status(200).json({
@@ -328,6 +329,99 @@ export class PaymentController {
     } catch (error) {
       console.error('Error fetching subscription history:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch subscription history' });
+    }
+  }
+
+  static async handleWebhook(req: Request, res: Response) {
+    try {
+      const signature = req.headers['x-razorpay-signature'] as string;
+      const secret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
+
+      // Verify webhook signature
+      const expectedSig = crypto
+        .createHmac('sha256', secret)
+        .update(JSON.stringify(req.body))
+        .digest('hex');
+
+      if (secret && expectedSig !== signature) {
+        return res.status(400).json({ success: false, message: 'Invalid webhook signature' });
+      }
+
+      const event = req.body;
+      const eventType: string = event.event;
+
+      if (eventType === 'payment.captured') {
+        const payment = event.payload.payment.entity;
+        const orderId: string = payment.order_id;
+        const paymentId: string = payment.id;
+        const amountPaise: number = payment.amount;
+
+        // Check if this is a subscription order
+        const purchase = await prisma.subscriptionPurchase.findFirst({
+          where: { orderId, paymentStatus: 'pending' },
+        });
+
+        if (purchase) {
+          const plan = PLANS_CONFIG[purchase.planName];
+          if (!plan) return res.status(200).json({ received: true });
+
+          await prisma.subscriptionPurchase.update({
+            where: { id: purchase.id },
+            data: { paymentStatus: 'paid', paymentReference: paymentId },
+          });
+
+          const user = await prisma.user.findUnique({ where: { id: purchase.userId } });
+          if (user) {
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + plan.validityDays);
+
+            const currentSlotsTotal = user.slotsTotal || 0;
+            const currentSlotsRemaining = user.slotsRemaining || 0;
+            const slotsToAdd = Math.max(plan.slots - currentSlotsTotal, 0);
+
+            await prisma.user.update({
+              where: { id: purchase.userId },
+              data: {
+                planName: purchase.planName,
+                planActive: true,
+                planExpiresAt: expiryDate,
+                slotsTotal: currentSlotsTotal + slotsToAdd,
+                slotsRemaining: currentSlotsRemaining + slotsToAdd,
+                kycStatus: user.kycStatus === 'approved' ? 'active' : user.kycStatus,
+              },
+            });
+
+            const invoiceData = {
+              userName: user.fullName || 'User',
+              companyName: user.companyName || '',
+              amount: amountPaise / 100,
+              description: plan.description,
+              date: new Date(),
+              invoiceId: `INV-SUB-${uuidv4().split('-')[0].toUpperCase()}`,
+              currency: 'INR',
+            };
+
+            await invoiceQueue.add('generateSubscriptionInvoice', {
+              type: 'generateSubscriptionInvoice',
+              payload: { invoiceData, userId: purchase.userId, purchaseId: purchase.id },
+            });
+          }
+        }
+      }
+
+      if (eventType === 'payment.failed') {
+        const payment = event.payload.payment.entity;
+        const orderId: string = payment.order_id;
+        await prisma.subscriptionPurchase.updateMany({
+          where: { orderId, paymentStatus: 'pending' },
+          data: { paymentStatus: 'failed' },
+        });
+      }
+
+      return res.status(200).json({ received: true });
+    } catch (error) {
+      console.error('Webhook error:', error);
+      return res.status(500).json({ success: false, message: 'Webhook processing failed' });
     }
   }
 

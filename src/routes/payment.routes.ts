@@ -1,8 +1,12 @@
 import { Router } from 'express';
 import { PaymentController } from '../controllers/payment.controller';
 import { authenticate, requireRole } from '../middlewares/auth.middleware';
+import express from 'express';
 
 const router = Router();
+
+// Webhook must use raw body — register before any json middleware on this router
+router.post('/webhook', express.raw({ type: 'application/json' }), PaymentController.handleWebhook);
 
 router.post('/create-order', authenticate, PaymentController.createOrder);
 router.post('/verify', authenticate, PaymentController.verifyPayment);
