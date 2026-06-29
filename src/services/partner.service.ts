@@ -30,9 +30,17 @@ export class PartnerService {
     const where = status ? { status } : {};
     return await prisma.partnerProfile.findMany({
       where,
+      orderBy: { createdAt: 'asc' },
       include: {
         user: {
-          select: { fullName: true, email: true, mobileNumber: true }
+          select: {
+            fullName: true, email: true, mobileNumber: true,
+            country: true, nationality: true, professionalTitle: true,
+            yearsOfExperience: true, languagesSpoken: true,
+            linkedinProfileUrl: true, websiteUrl: true,
+            profilePicture: true, applicationNumber: true,
+            kycStatus: true, createdAt: true,
+          }
         }
       }
     });
@@ -43,27 +51,65 @@ export class PartnerService {
       where: { userId },
       include: {
         user: {
-          select: { fullName: true, email: true, mobileNumber: true }
+          select: {
+            fullName: true, email: true, mobileNumber: true,
+            country: true, nationality: true, professionalTitle: true,
+            yearsOfExperience: true, languagesSpoken: true,
+            linkedinProfileUrl: true, websiteUrl: true,
+            profilePicture: true, applicationNumber: true,
+            kycStatus: true, createdAt: true,
+          }
         }
       }
     });
   }
 
-  static async updateStatus(userId: string, status: string, tier?: string) {
+  static async updateStatus(userId: string, status: string, tier?: string, reason?: string) {
     const dataToUpdate: any = { status };
     if (tier) dataToUpdate.tier = tier;
 
-    if (status === 'approved') {
-      // Also update user role to partner
+    const { emailService } = await import('./email.service');
+    const { emitToUser } = await import('./socket.service');
+
+    // Fetch user for email + socket
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, fullName: true },
+    });
+
+    if (status === 'active') {
+      // Approve: flip user role + kycStatus
       await prisma.user.update({
         where: { id: userId },
-        data: { role: 'partner', kycStatus: 'active' }
+        data: { role: 'partner', kycStatus: 'active' },
       });
+
+      if (user) {
+        await emailService.sendKycApproved(user.email, user.fullName || 'Partner');
+        emitToUser(userId, {
+          title: 'Application Approved',
+          message: 'Congratulations! Your partner application has been approved. You can now log in to your Partner Dashboard.',
+          type: 'success',
+          link: '/partner/dashboard',
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } else if (status === 'suspended') {
+      if (user) {
+        await emailService.sendKycRejected(user.email, user.fullName || 'Applicant', reason || 'Your partner application did not meet our current requirements. Please contact support for more information.');
+        emitToUser(userId, {
+          title: 'Application Rejected',
+          message: 'Your partner application was not approved at this time. Please check your email for details.',
+          type: 'error',
+          link: '/partner/register',
+          createdAt: new Date().toISOString(),
+        });
+      }
     }
 
     return await prisma.partnerProfile.update({
       where: { userId },
-      data: dataToUpdate
+      data: dataToUpdate,
     });
   }
 

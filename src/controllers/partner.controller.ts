@@ -59,13 +59,13 @@ export class PartnerController {
   static async updatePartnerStatus(req: Request, res: Response) {
     try {
       const { userId } = req.params;
-      const { status, tier } = req.body;
+      const { status, tier, reason } = req.body;
 
       if (!status) {
         return res.status(400).json({ success: false, message: 'Status is required' });
       }
 
-      const profile = await PartnerService.updateStatus(userId as string, status as string, tier as string | undefined);
+      const profile = await PartnerService.updateStatus(userId as string, status as string, tier as string | undefined, reason as string | undefined);
 
       res.status(200).json({
         success: true,
