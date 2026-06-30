@@ -18,7 +18,7 @@ const prisma = new PrismaClient();
 
 // ── Admin details — edit or override via env ──────────────────────────────────
 const ADMIN_EMAIL    = process.env.ADMIN_EMAIL    || 'admin@aecci.org.in';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin@2024#Secure';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin@123';
 const ADMIN_NAME     = process.env.ADMIN_NAME     || 'System Administrator';
 const ADMIN_MOBILE   = process.env.ADMIN_MOBILE   || '+91 22 0000 0000';
 
