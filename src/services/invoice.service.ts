@@ -1,15 +1,7 @@
 import puppeteer from 'puppeteer';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { config } from '../config/config';
-import { v4 as uuidv4 } from 'uuid';
-
-const s3Client = new S3Client({
-  region: config.AWS_REGION,
-  credentials: {
-    accessKeyId: config.AWS_ACCESS_KEY_ID,
-    secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
-  },
-});
+import { s3Client } from '../config/s3.config';
 
 export class InvoiceService {
   static async generateInvoiceHtml(data: {
@@ -51,7 +43,7 @@ export class InvoiceService {
             </div>
             <div style="text-align: right;">
               <p><strong>Invoice #:</strong> ${data.invoiceId}</p>
-              <p><strong>Date:</strong> ${data.date.toLocaleDateString()}</p>
+              <p><strong>Date:</strong> ${new Date(data.date).toLocaleDateString()}</p>
             </div>
           </div>
           

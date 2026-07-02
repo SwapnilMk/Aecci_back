@@ -27,6 +27,12 @@ export class UserController {
   static async getUserById(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const requestingUserId = (req as any).user?.id;
+      const role = (req as any).user?.role;
+      
+      if (role !== 'admin' && requestingUserId !== id) {
+        return res.status(403).json({ success: false, message: 'Forbidden: You can only access your own profile data.' });
+      }
       const user = await UserService.getUserById(id as string);
 
       if (!user) {

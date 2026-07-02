@@ -7,8 +7,8 @@ const router = Router();
 // Admin-only: list all users
 router.get('/', authenticate, requireRole(['admin']), UserController.getUsers);
 
-// Admin-only: get user by ID
-router.get('/:id', authenticate, requireRole(['admin']), UserController.getUserById);
+// Authenticated: get user by ID (auth checks inside controller)
+router.get('/:id', authenticate, UserController.getUserById);
 
 // Admin-only: update verification status
 router.patch('/:id/verification', authenticate, requireRole(['admin']), UserController.updateVerificationStatus);
