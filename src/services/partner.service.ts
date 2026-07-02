@@ -114,26 +114,50 @@ export class PartnerService {
   }
 
   static async updateSetupInfo(userId: string, data: any) {
-    if (data.profilePicture !== undefined || data.languagesSpoken !== undefined) {
-      const userUpdateData: any = {};
-      if (data.profilePicture !== undefined) userUpdateData.profilePicture = data.profilePicture;
-      if (data.languagesSpoken !== undefined) userUpdateData.languagesSpoken = data.languagesSpoken;
+    const userFields = [
+      'fullName', 'mobileNumber', 'countryCode', 'country', 'nationality',
+      'professionalTitle', 'yearsOfExperience', 'languagesSpoken',
+      'linkedinProfileUrl', 'websiteUrl', 'profilePicture'
+    ];
+    
+    const userUpdateData: any = {};
+    for (const field of userFields) {
+      if (data[field] !== undefined) {
+        userUpdateData[field] = data[field];
+      }
+    }
 
+    if (Object.keys(userUpdateData).length > 0) {
       await prisma.user.update({
         where: { id: userId },
         data: userUpdateData
       });
     }
 
-    return await prisma.partnerProfile.update({
-      where: { userId },
-      data: {
-        bio: data.bio,
-        availability: data.availability,
-        signedAgreement: data.signedAgreement,
-        agreementDate: data.signedAgreement ? new Date() : undefined,
+    const profileFields = [
+      'organization', 'bio', 'motivation', 'expertiseCountries', 
+      'expertiseSectors', 'references', 'availability', 'signedAgreement'
+    ];
+    
+    const profileUpdateData: any = {};
+    for (const field of profileFields) {
+      if (data[field] !== undefined) {
+        profileUpdateData[field] = data[field];
       }
-    });
+    }
+
+    if (data.signedAgreement) {
+      profileUpdateData.agreementDate = new Date();
+    }
+
+    if (Object.keys(profileUpdateData).length > 0) {
+      return await prisma.partnerProfile.update({
+        where: { userId },
+        data: profileUpdateData
+      });
+    }
+
+    return await prisma.partnerProfile.findUnique({ where: { userId } });
   }
 
   static async createPartnerManually(data: any) {

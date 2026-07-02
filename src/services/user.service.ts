@@ -99,6 +99,12 @@ export class UserService {
         planExpiresAt: true,
         slotsTotal: true,
         slotsRemaining: true,
+        nationality: true,
+        professionalTitle: true,
+        yearsOfExperience: true,
+        languagesSpoken: true,
+        profilePicture: true,
+        partnerProfile: true,
       },
     });
     return user;
