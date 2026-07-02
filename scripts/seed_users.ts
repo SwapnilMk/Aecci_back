@@ -20,7 +20,7 @@ async function main() {
           password: hashedPassword,
           fullName: `Test ${role}`,
           role: role,
-          kycStatus: 'approved',
+          verificationStatus: 'approved',
           isEmailVerified: true
         }
       });

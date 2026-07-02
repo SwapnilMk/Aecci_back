@@ -18,11 +18,11 @@ Regards,
 AECCI Global Deal Room Team`,
   }),
 
-  kycApproved: (name: string) => ({
-    subject: "KYC Verification Successful – AECCI Global Deal Room",
+  verificationApproved: (name: string) => ({
+    subject: "Verification Successful – AECCI Global Deal Room",
     text: `Dear ${name},
 
-We are pleased to inform you that your KYC verification is complete and your application has been approved.
+We are pleased to inform you that your verification is complete and your application has been approved.
 
 Our team will now proceed with evaluating your requirements and assigning the appropriate partner and deal room.
 
@@ -30,7 +30,7 @@ Regards,
 AECCI Screening Desk`,
   }),
 
-  kycRejected: (name: string, reason: string) => ({
+  verificationRejected: (name: string, reason: string) => ({
     subject: "Update on Your Registration – AECCI Global Deal Room",
     text: `Dear ${name},
 

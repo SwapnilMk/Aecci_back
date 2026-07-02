@@ -10,7 +10,7 @@ router.get('/', authenticate, requireRole(['admin']), UserController.getUsers);
 // Admin-only: get user by ID
 router.get('/:id', authenticate, requireRole(['admin']), UserController.getUserById);
 
-// Admin-only: update KYC status
-router.patch('/:id/kyc', authenticate, requireRole(['admin']), UserController.updateKycStatus);
+// Admin-only: update verification status
+router.patch('/:id/verification', authenticate, requireRole(['admin']), UserController.updateVerificationStatus);
 
 export default router;

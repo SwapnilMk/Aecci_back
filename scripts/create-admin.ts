@@ -31,14 +31,14 @@ async function main() {
     if (existing.role === 'admin') {
       console.log(`⚠️  Admin already exists: ${ADMIN_EMAIL}`);
       console.log(`    Role     : ${existing.role}`);
-      console.log(`    KYC      : ${existing.kycStatus}`);
+      console.log(`    Verification      : ${existing.verificationStatus}`);
       console.log('    No changes made.\n');
       return;
     }
     // Exists but not admin — promote
     const updated = await prisma.user.update({
       where: { email: ADMIN_EMAIL },
-      data: { role: 'admin', kycStatus: 'active' },
+      data: { role: 'admin', verificationStatus: 'active' },
     });
     console.log(`✅  Existing user promoted to admin: ${updated.email}\n`);
     return;
@@ -57,7 +57,7 @@ async function main() {
       fullName:          ADMIN_NAME,
       mobileNumber:      ADMIN_MOBILE,
       role:              'admin',
-      kycStatus:         'active',
+      verificationStatus:         'active',
       isEmailVerified:   true,
       applicationNumber: appNo,
       country:           'India',
@@ -80,7 +80,7 @@ async function main() {
   console.log(`  Email             : ${admin.email}`);
   console.log(`  Password (plain)  : ${ADMIN_PASSWORD}`);
   console.log(`  Role              : ${admin.role}`);
-  console.log(`  KYC Status        : ${admin.kycStatus}`);
+  console.log(`  Verification Status        : ${admin.verificationStatus}`);
   console.log(`  Application No.   : ${admin.applicationNumber}`);
   console.log('─────────────────────────────────────────');
   console.log('\n⚠️  Save the password above — it is not shown again.\n');

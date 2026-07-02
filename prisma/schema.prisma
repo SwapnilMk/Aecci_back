@@ -63,7 +63,7 @@ model User {
   linkedinProfileUrl  String?
   yearsOfExperience   String?
   aadharNumber        String?
-  internationalKycIds InternationalId[]
+  internationalIds InternationalId[]
   expertiseAreas      String[]
   sectorsOfInterest   String[]
   languagesSpoken     String[]
@@ -82,8 +82,8 @@ model User {
   productCatalogue       String[]
   documents              String[]
 
-  kycStatus            String  @default("pending_verification") // pending_verification, approved, active, rejected
-  kycRejectionReason   String?
+  verificationStatus   String  @default("pending_verification") // pending_verification, approved, active, rejected
+  rejectionReason      String?
   role                 String  @default("user") // user, admin, partner
 
   // Post-Onboarding Partner & Pricing Flow

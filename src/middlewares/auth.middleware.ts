@@ -31,7 +31,7 @@ export const requireRole = (roles: string[]) => {
   };
 };
 
-export const requireKycApproved = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const requireVerificationApproved = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user || !req.user.id) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -44,19 +44,19 @@ export const requireKycApproved = async (req: AuthenticatedRequest, res: Respons
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (user.kycStatus === 'pending_verification') {
+    if (user.verificationStatus === 'pending_verification') {
       return res.status(403).json({ 
         success: false, 
         message: 'Access Restricted: Your account is pending verification.',
-        code: 'KYC_PENDING'
+        code: 'VERIFICATION_PENDING'
       });
     }
 
-    if (user.kycStatus === 'rejected') {
+    if (user.verificationStatus === 'rejected') {
       return res.status(403).json({ 
         success: false, 
         message: 'Access Restricted: Your application was rejected. Please review and resubmit.',
-        code: 'KYC_REJECTED'
+        code: 'VERIFICATION_REJECTED'
       });
     }
 

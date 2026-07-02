@@ -38,7 +38,7 @@ export const getAdminDashboardStats = async (req: AuthenticatedRequest, res: Res
       prisma.user.count({ where: { role: 'user', userType: { in: ['business', 'Business'] } } }),
       prisma.user.count({ where: { role: 'user', userType: { in: ['individual', 'Individual'] } } }),
       prisma.user.count({ where: { role: 'partner' } }),
-      prisma.user.count({ where: { role: 'user', kycStatus: 'pending_verification' } }),
+      prisma.user.count({ where: { role: 'user', verificationStatus: 'pending_verification' } }),
       prisma.session.count({ where: { status: { in: ['upcoming', 'live', 'pending_approval'] } } }),
       prisma.session.count({ where: { status: 'completed' } }),
       prisma.user.count({ where: { role: 'user', planActive: true } }),
@@ -51,7 +51,7 @@ export const getAdminDashboardStats = async (req: AuthenticatedRequest, res: Res
         },
       }),
       prisma.user.findMany({
-        where: { role: 'user', kycStatus: 'pending_verification' },
+        where: { role: 'user', verificationStatus: 'pending_verification' },
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: {
@@ -60,7 +60,7 @@ export const getAdminDashboardStats = async (req: AuthenticatedRequest, res: Res
           companyName: true,
           userType: true,
           email: true,
-          kycStatus: true,
+          verificationStatus: true,
           iecDocument: true,
           gstDocument: true,
           panDocument: true,

@@ -138,7 +138,7 @@ export class AuthService {
     'businessRole', 'products', 'targetMarkets', 'keyCertifications',
     'experience', 'objective',
     'professionalTitle', 'nationality', 'linkedinProfileUrl', 'yearsOfExperience',
-    'aadharNumber', 'internationalKycIds', 'expertiseAreas', 'sectorsOfInterest',
+    'aadharNumber', 'internationalIds', 'expertiseAreas', 'sectorsOfInterest',
     'languagesSpoken', 'businessAssociation',
     'profilePicture', 'iecDocument', 'gstDocument', 'panDocument',
     'companyProfileDocument', 'productCatalogue', 'documents',
@@ -159,8 +159,8 @@ export class AuthService {
 
     if (isResubmit) {
       this.validateOnboardingData({ ...sanitized, userType: profileData.userType, country: profileData.country });
-      sanitized.kycStatus = 'pending_verification';
-      sanitized.kycRejectionReason = null;
+      sanitized.verificationStatus = 'pending_verification';
+      sanitized.rejectionReason = null;
     }
 
     const user = await prisma.user.update({
@@ -218,7 +218,7 @@ export class AuthService {
         profilePicture: restData.profilePicture || null,
         isEmailVerified: true,
         role: 'partner',
-        kycStatus: 'pending_verification',
+        verificationStatus: 'pending_verification',
         applicationNumber: `AECCI-PARTNER-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
       },
     });
@@ -399,9 +399,9 @@ export class AuthService {
       }
     } else if (userType === 'individual') {
       if (country !== 'India') {
-        const ids = data.internationalKycIds;
+        const ids = data.internationalIds;
         if (!ids || !Array.isArray(ids) || ids.length === 0 || !ids.some((id: any) => id.type && id.idNumber)) {
-          throw new Error('International individuals must provide at least one International KYC ID');
+          throw new Error('International individuals must provide at least one International ID');
         }
       }
     }

@@ -226,7 +226,7 @@ async function seedPartners() {
           yearsOfExperience: String(partner.yearsOfExperience),
           languagesSpoken: partner.languagesSpoken,
           isEmailVerified: true,
-          kycStatus: 'active',
+          verificationStatus: 'active',
           applicationNumber: `AECCI-PARTNER-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
         },
       });

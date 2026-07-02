@@ -120,7 +120,7 @@ async function main() {
           industrySector: (c.businessCategory ?? '').trim(),
           role: 'partner',
           userType: 'business',
-          kycStatus: 'active',
+          verificationStatus: 'active',
           isEmailVerified: true,
           ...(createdAt ? { createdAt } : {}),
         },

@@ -39,7 +39,7 @@ export class PartnerService {
             yearsOfExperience: true, languagesSpoken: true,
             linkedinProfileUrl: true, websiteUrl: true,
             profilePicture: true, applicationNumber: true,
-            kycStatus: true, createdAt: true,
+            verificationStatus: true, createdAt: true,
           }
         }
       }
@@ -57,7 +57,7 @@ export class PartnerService {
             yearsOfExperience: true, languagesSpoken: true,
             linkedinProfileUrl: true, websiteUrl: true,
             profilePicture: true, applicationNumber: true,
-            kycStatus: true, createdAt: true,
+            verificationStatus: true, createdAt: true,
           }
         }
       }
@@ -78,14 +78,14 @@ export class PartnerService {
     });
 
     if (status === 'active') {
-      // Approve: flip user role + kycStatus
+      // Approve: flip user role + verificationStatus
       await prisma.user.update({
         where: { id: userId },
-        data: { role: 'partner', kycStatus: 'active' },
+        data: { role: 'partner', verificationStatus: 'active' },
       });
 
       if (user) {
-        await emailService.sendKycApproved(user.email, user.fullName || 'Partner');
+        await emailService.sendVerificationApproved(user.email, user.fullName || 'Partner');
         emitToUser(userId, {
           title: 'Application Approved',
           message: 'Congratulations! Your partner application has been approved. You can now log in to your Partner Dashboard.',
@@ -96,7 +96,7 @@ export class PartnerService {
       }
     } else if (status === 'suspended') {
       if (user) {
-        await emailService.sendKycRejected(user.email, user.fullName || 'Applicant', reason || 'Your partner application did not meet our current requirements. Please contact support for more information.');
+        await emailService.sendVerificationRejected(user.email, user.fullName || 'Applicant', reason || 'Your partner application did not meet our current requirements. Please contact support for more information.');
         emitToUser(userId, {
           title: 'Application Rejected',
           message: 'Your partner application was not approved at this time. Please check your email for details.',
@@ -149,7 +149,7 @@ export class PartnerService {
         country: data.country,
         password: hashedPassword,
         role: 'partner',
-        kycStatus: 'active',
+        verificationStatus: 'active',
         isEmailVerified: true,
         userType: 'Individual', // Default for partners
       }

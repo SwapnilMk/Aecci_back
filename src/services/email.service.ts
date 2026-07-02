@@ -42,13 +42,13 @@ export class EmailService {
     await this.sendMail(email, template.subject, template.text);
   }
 
-  async sendKycApproved(email: string, name: string) {
-    const template = emailTemplates.kycApproved(name);
+  async sendVerificationApproved(email: string, name: string) {
+    const template = emailTemplates.verificationApproved(name);
     await this.sendMail(email, template.subject, template.text);
   }
 
-  async sendKycRejected(email: string, name: string, reason: string) {
-    const template = emailTemplates.kycRejected(name, reason);
+  async sendVerificationRejected(email: string, name: string, reason: string) {
+    const template = emailTemplates.verificationRejected(name, reason);
     await this.sendMail(email, template.subject, template.text);
   }
 

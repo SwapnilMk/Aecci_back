@@ -1,13 +1,13 @@
 import { prisma } from '../config/db.config';
 
 export class UserService {
-  static async getUsers(filters: { role?: string; userType?: string; kycStatus?: string }) {
-    const { role, userType, kycStatus } = filters;
+  static async getUsers(filters: { role?: string; userType?: string; verificationStatus?: string }) {
+    const { role, userType, verificationStatus } = filters;
     const where: any = {};
 
     if (role) where.role = role;
     if (userType) where.userType = userType;
-    if (kycStatus) where.kycStatus = kycStatus;
+    if (verificationStatus) where.verificationStatus = verificationStatus;
 
     const users = await prisma.user.findMany({
       where,
@@ -20,7 +20,7 @@ export class UserService {
         role: true,
         userType: true,
         companyName: true,
-        kycStatus: true,
+        verificationStatus: true,
         iecDocument: true,
         gstDocument: true,
         panDocument: true,
@@ -30,8 +30,8 @@ export class UserService {
         isEmailVerified: true,
         createdAt: true,
         internationalBusinessIds: true,
-        internationalKycIds: true,
-        kycRejectionReason: true,
+        internationalIds: true,
+        rejectionReason: true,
         websiteUrl: true,
         linkedinUrl: true,
         yearEstablished: true,
@@ -70,7 +70,7 @@ export class UserService {
         role: true,
         userType: true,
         companyName: true,
-        kycStatus: true,
+        verificationStatus: true,
         iecDocument: true,
         gstDocument: true,
         panDocument: true,
@@ -80,8 +80,8 @@ export class UserService {
         isEmailVerified: true,
         createdAt: true,
         internationalBusinessIds: true,
-        internationalKycIds: true,
-        kycRejectionReason: true,
+        internationalIds: true,
+        rejectionReason: true,
         websiteUrl: true,
         linkedinUrl: true,
         yearEstablished: true,
@@ -106,13 +106,13 @@ export class UserService {
     return user;
   }
 
-  static async updateKycStatus(userId: string, kycStatus: string, reason?: string) {
-    const updateData: any = { kycStatus };
+  static async updateVerificationStatus(userId: string, verificationStatus: string, reason?: string) {
+    const updateData: any = { verificationStatus };
 
-    if (kycStatus === 'rejected') {
-      updateData.kycRejectionReason = reason;
+    if (verificationStatus === 'rejected') {
+      updateData.rejectionReason = reason;
     } else {
-      updateData.kycRejectionReason = null;
+      updateData.rejectionReason = null;
     }
 
     const user = await prisma.user.update({
@@ -123,20 +123,20 @@ export class UserService {
     const { emailService } = await import('./email.service');
     const { emitToUser } = await import('./socket.service');
 
-    if (kycStatus === 'approved') {
-      await emailService.sendKycApproved(user.email, user.fullName || 'Valued Member');
+    if (verificationStatus === 'approved') {
+      await emailService.sendVerificationApproved(user.email, user.fullName || 'Valued Member');
       emitToUser(user.id, {
-        title: 'KYC Approved',
-        message: 'Your KYC verification has been approved. You now have access to your dashboard.',
+        title: 'Verification Approved',
+        message: 'Your verification has been approved. You now have access to your dashboard.',
         type: 'success',
         link: '/dashboard',
         createdAt: new Date().toISOString(),
       });
-    } else if (kycStatus === 'rejected') {
-      await emailService.sendKycRejected(user.email, user.fullName || 'Applicant', reason || 'Does not meet criteria.');
+    } else if (verificationStatus === 'rejected') {
+      await emailService.sendVerificationRejected(user.email, user.fullName || 'Applicant', reason || 'Does not meet criteria.');
       emitToUser(user.id, {
-        title: 'KYC Rejected',
-        message: reason || 'Your KYC application was not approved. Please check your email for details.',
+        title: 'Verification Rejected',
+        message: reason || 'Your application was not approved. Please check your email for details.',
         type: 'error',
         link: '/dashboard',
         createdAt: new Date().toISOString(),

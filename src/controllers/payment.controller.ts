@@ -120,11 +120,11 @@ export class PaymentController {
         }
       });
 
-      // Update User kycStatus if they were pending payment
-      if (user.kycStatus === 'pending_verification' || user.kycStatus === 'approved') {
+      // Update User verificationStatus if they were pending payment
+      if (user.verificationStatus === 'pending_verification' || user.verificationStatus === 'approved') {
          await prisma.user.update({
            where: { id: userId },
-           data: { kycStatus: 'active' }
+           data: { verificationStatus: 'active' }
          });
       }
 
@@ -280,7 +280,7 @@ export class PaymentController {
           planExpiresAt: expiryDate,
           slotsTotal: finalSlotsTotal,
           slotsRemaining: finalSlotsRemaining,
-          kycStatus: user.kycStatus === 'approved' ? 'active' : user.kycStatus,
+          verificationStatus: user.verificationStatus === 'approved' ? 'active' : user.verificationStatus,
         }
       });
 
@@ -387,7 +387,7 @@ export class PaymentController {
                 planExpiresAt: expiryDate,
                 slotsTotal: currentSlotsTotal + slotsToAdd,
                 slotsRemaining: currentSlotsRemaining + slotsToAdd,
-                kycStatus: user.kycStatus === 'approved' ? 'active' : user.kycStatus,
+                verificationStatus: user.verificationStatus === 'approved' ? 'active' : user.verificationStatus,
               },
             });
 

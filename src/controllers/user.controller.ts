@@ -4,12 +4,12 @@ import { UserService } from '../services/user.service';
 export class UserController {
   static async getUsers(req: Request, res: Response) {
     try {
-      const { role, userType, kycStatus } = req.query;
+      const { role, userType, verificationStatus } = req.query;
 
       const filters = {
         role: role as string,
         userType: userType as string,
-        kycStatus: kycStatus as string,
+        verificationStatus: verificationStatus as string,
       };
 
       const users = await UserService.getUsers(filters);
@@ -43,31 +43,31 @@ export class UserController {
     }
   }
 
-  static async updateKycStatus(req: Request, res: Response) {
+  static async updateVerificationStatus(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { kycStatus, reason } = req.body;
+      const { verificationStatus, reason } = req.body;
 
       // Only the canonical statuses defined in ROADMAP
       const allowedStatuses = ['pending_verification', 'approved', 'active', 'rejected'];
-      if (!allowedStatuses.includes(kycStatus)) {
-        return res.status(400).json({ success: false, message: 'Invalid kycStatus' });
+      if (!allowedStatuses.includes(verificationStatus)) {
+        return res.status(400).json({ success: false, message: 'Invalid verificationStatus' });
       }
 
-      if (kycStatus === 'rejected' && !reason) {
+      if (verificationStatus === 'rejected' && !reason) {
         return res.status(400).json({ success: false, message: 'Reason is required for rejection' });
       }
 
-      const updatedUser = await UserService.updateKycStatus(id as string, kycStatus, reason);
+      const updatedUser = await UserService.updateVerificationStatus(id as string, verificationStatus, reason);
 
       res.status(200).json({
         success: true,
-        message: `User KYC status updated to ${kycStatus}`,
+        message: `User verification status updated to ${verificationStatus}`,
         data: updatedUser,
       });
     } catch (error) {
-      console.error('Error updating KYC status:', error);
-      res.status(500).json({ success: false, message: 'Failed to update KYC status' });
+      console.error('Error updating verification status:', error);
+      res.status(500).json({ success: false, message: 'Failed to update verification status' });
     }
   }
 }
